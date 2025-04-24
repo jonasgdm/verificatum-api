@@ -19,7 +19,7 @@ This project is a Java-based RESTful API built with Spring Boot to interact with
 | Linux      | required for native `.so` dependencies |
 
 
-## ⚙️ ⚙️ Clone, Build & Setup
+## ⚙️ Clone, Build & Setup
 
 ```bash
 git clone https://github.com/jonasgdm/verificatum-api.git
@@ -34,13 +34,6 @@ Run this inside the project folder:
 
 ```bash
 export LD_LIBRARY_PATH=$(pwd)/lib:$LD_LIBRARY_PATH
-```
-
-To make it permanent (optional):
-
-```bash
-echo 'export LD_LIBRARY_PATH=$(pwd)/lib:$LD_LIBRARY_PATH' >> ~/.bashrc
-source ~/.bashrc
 ```
 
 ## 🛠️ Build & Run

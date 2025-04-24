@@ -14,6 +14,7 @@ import java.io.File;
 public class VerificatumInfoGenerator {
 
     public static void generateStub(String sessionId, String name, int numParties, int threshold, File outputFile) throws InfoException{
+        // Create the bulletin board
         final BullBoardBasicGen bullBoardBasicGen =
                 new BullBoardBasicHTTPWGen();
 
