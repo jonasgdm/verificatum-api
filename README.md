@@ -22,7 +22,7 @@ This project is a Java-based RESTful API built with Spring Boot to interact with
 ## ⚙️ ⚙️ Clone, Build & Setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/verificatum-api.git
+git clone https://github.com/jonasgdm/verificatum-api.git
 cd verificatum-api
 ```
 
