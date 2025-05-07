@@ -8,3 +8,5 @@ target/
 *.class
 .vscode/
 .DS_Store
+*.xml
+*.txt
