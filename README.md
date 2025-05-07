@@ -6,46 +6,45 @@ This project is a Java-based RESTful API built with Spring Boot to interact with
 
 - Full Java integration with Verificatum’s internal library (no CLI required)
 - Endpoint for protocol stub file generation (`-prot`)
-- Proper setup for native library support
 - Spring Boot API, ready to integrate with frontends or orchestrators
 
----
+## 📦 Requirements
 
-## ⚙️ One-Time Setup (REQUIRED)
+| Tool       | Version |
+|------------|---------|
+| Java       | 17      |
+| Maven      | 3.x     |
+| Git        | latest  |
+| Curl       | optional for API testing |
+| Linux      | required for native `.so` dependencies |
 
-> **IMPORTANT**: Verificatum depends on a native library (`libvecj-2.2.0.so`) that must be accessible at runtime. Without this, the API **will crash** with a `java.lang.UnsatisfiedLinkError`.
 
-Run this in your terminal **before starting the API**:
+## ⚙️ Clone, Build & Setup
+
+```bash
+git clone https://github.com/jonasgdm/verificatum-api.git
+cd verificatum-api
+```
+
+### ✅ One-Time Native Library Setup (REQUIRED)
+
+> Verificatum depends on a native library (libvecj-2.2.0.so) that must be accessible at runtime. Without this, the API will crash with java.lang.UnsatisfiedLinkError.
+
+Run this inside the project folder:
 
 ```bash
 export LD_LIBRARY_PATH=$(pwd)/lib:$LD_LIBRARY_PATH
 ```
 
-To make it permanent (optional but recommended):
-
-```bash
-echo 'export LD_LIBRARY_PATH=$(pwd)/lib:$LD_LIBRARY_PATH' >> ~/.bashrc
-source ~/.bashrc
-```
-If you're using an IDE, make sure to configure this env var in your run configuration.
-
----
-
 ## 🛠️ Build & Run
 
-Clone and run the project:
-
 ```bash
-git clone https://github.com/YOUR_USERNAME/verificatum-api.git
-cd verificatum-api
 mvn clean install
 mvn spring-boot:run
 ```
 The API will be available at:
 
 `http://localhost:8080`
-
----
 
 ## 📡 API Endpoints
 ### ➕ Generate Stub File
@@ -55,8 +54,6 @@ The API will be available at:
 Generates a protocol stub (stub.xml) using internal Verificatum library functions (equivalent to vmni -prot).
 
 📝 Output will appear in the root of the project (verificatum-api/stub.xml).
-
----
 
 ## 🔜 Next Steps
 
