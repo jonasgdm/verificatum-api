@@ -66,3 +66,41 @@ Generates a protocol stub (stub.xml) using internal Verificatum library function
 - Clean up and modularize configurations for LAN or distributed deployments
 
 - Start writing integration tests and performance benchmarking
+
+## Flask Backend
+
+This Flask backend serves as a middleware layer between the user-facing frontend and the Verificatum Java API. It exposes a simplified API that orchestrates secure voting steps such as key generation, mixing, and decryption by communicating with external mixnet services. This architecture allows the frontend to remain lightweight and abstracted from cryptographic complexity.
+
+### How to Run
+
+1. Change to flask_backend directory
+
+```
+cd flask_backend
+```
+
+3. Create a Virtual Environment
+
+```
+python -m venv .venv
+```
+
+5. Install Independences
+
+```
+pip install flask
+```
+
+```
+pip install flask-cors
+```
+
+7. Run the Flask Server
+
+```
+python app.py
+```
+
+
+Server will start at:
+`http://localhost:5000`
