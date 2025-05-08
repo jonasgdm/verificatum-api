@@ -79,13 +79,17 @@ This Flask backend serves as a middleware layer between the user-facing frontend
 cd flask_backend
 ```
 
-3. Create a Virtual Environment
+2. Create a Virtual Environment
 
 ```
 python -m venv .venv
 ```
+3. Active Virtual Environment
+```
+source .venv/bin/activate
+```
 
-5. Install Independences
+4. Install Independences
 
 ```
 pip install flask
@@ -95,7 +99,7 @@ pip install flask
 pip install flask-cors
 ```
 
-7. Run the Flask Server
+5. Run the Flask Server
 
 ```
 python app.py
