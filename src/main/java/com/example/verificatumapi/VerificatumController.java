@@ -1,86 +1,140 @@
 package com.example.verificatumapi;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.io.IOException;
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/verificatum")
 public class VerificatumController {
 
-    @GetMapping("/setup")
-    public Map<String, Map<String, Object>> setup() {
-        Map<String, Map<String, Object>> response = new LinkedHashMap<>();
-        File baseDir = new File(System.getProperty("user.dir"));
-        String sessionId = "sid";
-        String name = "DemoMixNet";
-        int threshold = 2;
+    private static final int NUM_SERVERS = 3;
+    private static final String BASE_DIR = "verificatum-demo";
+    private static final String SESSION_ID = "SessionID";
+    private static final String ELECTION_NAME = "Swedish Election";
 
+    @PostMapping("/setup")
+    public Map<String, String> setup() {
         try {
-            // Run all setup steps
-            VerificatumInfoGenerator.generateStub(sessionId, name, threshold, baseDir);
-            VerificatumInfoGenerator.generateParty(baseDir);
-            VerificatumInfoGenerator.mergeProtocolInfos(baseDir);
+            for (int i = 1; i <= NUM_SERVERS; i++) {
+                File serverDir = new File(BASE_DIR + "/0" + i);
+                serverDir.mkdirs();
 
-            // Collect and convert XML files
-            for (int i = 0; i < 3; i++) {
-                Map<String, Object> fileMap = new LinkedHashMap<>();
-                File serverDir = new File(baseDir, "server" + i);
+                // Step 0: Generate stub
+                run("vmni", "-prot",
+                        "-sid", SESSION_ID,
+                        "-name", ELECTION_NAME,
+                        "-nopart", String.valueOf(NUM_SERVERS),
+                        "-thres", "2",
+                        "-basedir", serverDir.getAbsolutePath()
+                );
 
-                for (String fileName : new String[]{"stub.xml", "privInfo.xml", "localProtInfo.xml", "protInfo.xml"}) {
-                    File xmlFile = new File(serverDir, fileName);
-                    if (xmlFile.exists()) {
-                        Object json = convertXmlToJson(xmlFile);
-                        fileMap.put(fileName, json);
-                    }
-                }
+                // Step 1: Generate party info
+                run("vmni", "-party",
+                        "-name", "Mix-server 0" + i,
+                        "-http", "http://localhost:804" + i,
+                        "-hint", "localhost:404" + i,
+                        "-basedir", serverDir.getAbsolutePath()
+                );
 
-                response.put("server" + i, fileMap);
+                // Rename localProtInfo.xml to protInfo0X.xml
+                new File(serverDir, "localProtInfo.xml")
+                        .renameTo(new File(serverDir, "protInfo0" + i + ".xml"));
             }
 
-            return response;
+            // Step 1: Cross-copy protocol files
+            for (int i = 1; i <= NUM_SERVERS; i++) {
+                File srcDir = new File(BASE_DIR + "/0" + i);
+                for (int j = 1; j <= NUM_SERVERS; j++) {
+                    if (i == j) continue;
+                    File destDir = new File(BASE_DIR + "/0" + j);
+                    File proto = new File(srcDir, "protInfo0" + i + ".xml");
+                    File dest = new File(destDir, "protInfo0" + i + ".xml");
+                    java.nio.file.Files.copy(proto.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
 
+            return Map.of("status", "Setup complete");
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Setup failed: " + e.getMessage());
+            return Map.of("error", e.getMessage());
         }
     }
 
-    private Object convertXmlToJson(File xmlFile) throws Exception {
-        XmlMapper xmlMapper = new XmlMapper();
-        ObjectMapper jsonMapper = new ObjectMapper();
-        return jsonMapper.convertValue(xmlMapper.readTree(xmlFile), Map.class);
+    @PostMapping("/keygen")
+    public Map<String, String> keygen() {
+        try {
+            for (int i = 1; i <= NUM_SERVERS; i++) {
+                File dir = new File(BASE_DIR + "/0" + i);
+
+                // Step 2: Merge protocol files
+                run("vmni", "-merge",
+                        "-basedir", dir.getAbsolutePath(),
+                        "protInfo01.xml", "protInfo02.xml", "protInfo03.xml"
+                );
+
+                // Generate public key
+                run("vmn", "-keygen",
+                        "-basedir", dir.getAbsolutePath(),
+                        "publicKey"
+                );
+            }
+            return Map.of("status", "Keygen complete");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Map.of("error", e.getMessage());
+        }
     }
 
-    @GetMapping("/generate-key")
-    public Map<String, Object> generateKey() throws Exception {
-        File baseDir = new File(System.getProperty("user.dir"));
+    @PostMapping("/generate-ciphertexts")
+    public Map<String, String> generateCiphertexts() {
+        try {
+            File dir = new File(BASE_DIR + "/01");
+            run("vmnd", "-ciphs",
+                    new File(dir, "publicKey").getAbsolutePath(),
+                    "100", "ciphertexts"
+            );
 
-        VerificatumKeyGenerator.generateKeys(baseDir);
+            for (int i = 2; i <= NUM_SERVERS; i++) {
+                File src = new File(dir, "ciphertexts");
+                File dest = new File(BASE_DIR + "/0" + i + "/ciphertexts");
+                java.nio.file.Files.copy(src.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
 
-        Map<String, Object> result = new HashMap<>();
-
-        // Load the joint public key from server0 (they're all the same)
-        File pubKeyFile = new File(baseDir, "server0/PublicKey");
-        String publicKeyBase64 = VerificatumUtils.readByteTreeAsBase64(pubKeyFile);
-        result.put("publicKey", publicKeyBase64);
-
-        // Load private keys for each server (from Keys file)
-        Map<String, String> privateKeys = new HashMap<>();
-        for (int i = 0; i < 3; i++) {
-            File keysFile = new File(baseDir, "server" + i + "/Keys");
-            String privateKeyBase64 = VerificatumUtils.readPrivateKeyFromKeysFile(keysFile);
-            privateKeys.put("server" + i, privateKeyBase64);
+            return Map.of("status", "Ciphertexts generated");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Map.of("error", e.getMessage());
         }
+    }
 
-        result.put("privateKeys", privateKeys);
-        return result;
+    @PostMapping("/mix")
+    public Map<String, String> mix() {
+        try {
+            for (int i = 1; i <= NUM_SERVERS; i++) {
+                File dir = new File(BASE_DIR + "/0" + i);
+                run("vmn", "-mix",
+                        "-basedir", dir.getAbsolutePath(),
+                        "ciphertexts", "plaintexts"
+                );
+            }
+            return Map.of("status", "Mixing complete");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Map.of("error", e.getMessage());
+        }
+    }
+
+    private static void run(String... command) throws IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.inheritIO();
+        Process p = pb.start();
+        int exitCode = p.waitFor();
+        if (exitCode != 0) {
+            throw new RuntimeException("Command failed: " + String.join(" ", command));
+        }
     }
 }
