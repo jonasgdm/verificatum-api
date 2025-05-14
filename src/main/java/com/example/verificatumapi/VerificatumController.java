@@ -5,7 +5,12 @@ import org.springframework.web.bind.annotation.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 @RestController
 @RequestMapping("/verificatum")
@@ -14,7 +19,7 @@ public class VerificatumController {
     private static final int NUM_SERVERS = 3;
     private static final String BASE_DIR = "verificatum-demo";
     private static final String SESSION_ID = "SessionID";
-    private static final String ELECTION_NAME = "Swedish Election";
+    private static final String ELECTION_NAME = "Swedish_Election";
 
     @PostMapping("/setup")
     public Map<String, String> setup() {
@@ -24,20 +29,18 @@ public class VerificatumController {
                 serverDir.mkdirs();
 
                 // Step 0: Generate stub
-                run("vmni", "-prot",
+                run(serverDir, "vmni", "-prot",
                         "-sid", SESSION_ID,
                         "-name", ELECTION_NAME,
                         "-nopart", String.valueOf(NUM_SERVERS),
-                        "-thres", "2",
-                        "-basedir", serverDir.getAbsolutePath()
+                        "-thres", "2"
                 );
 
                 // Step 1: Generate party info
-                run("vmni", "-party",
-                        "-name", "Mix-server 0" + i,
+                run(serverDir, "vmni", "-party",
+                        "-name", "MixServer_0" + i,
                         "-http", "http://localhost:804" + i,
-                        "-hint", "localhost:404" + i,
-                        "-basedir", serverDir.getAbsolutePath()
+                        "-hint", "localhost:404" + i
                 );
 
                 // Rename localProtInfo.xml to protInfo0X.xml
@@ -57,6 +60,15 @@ public class VerificatumController {
                 }
             }
 
+            for (int i = 1; i <= NUM_SERVERS; i++) {
+                File dir = new File(BASE_DIR + "/0" + i);
+
+                // Step 2: Merge protocol files
+                run(dir, "vmni", "-merge",
+                        "protInfo01.xml", "protInfo02.xml", "protInfo03.xml"
+                );
+            }
+
             return Map.of("status", "Setup complete");
         } catch (Exception e) {
             e.printStackTrace();
@@ -67,21 +79,32 @@ public class VerificatumController {
     @PostMapping("/keygen")
     public Map<String, String> keygen() {
         try {
+            ExecutorService executor = Executors.newFixedThreadPool(NUM_SERVERS);
+            List<Future<?>> futures = new ArrayList<>();
+
             for (int i = 1; i <= NUM_SERVERS; i++) {
-                File dir = new File(BASE_DIR + "/0" + i);
+                final int index = i;
+                futures.add(executor.submit(() -> {
+                    File dir = new File(BASE_DIR + "/0" + index);
 
-                // Step 2: Merge protocol files
-                run("vmni", "-merge",
-                        "-basedir", dir.getAbsolutePath(),
-                        "protInfo01.xml", "protInfo02.xml", "protInfo03.xml"
-                );
-
-                // Generate public key
-                run("vmn", "-keygen",
-                        "-basedir", dir.getAbsolutePath(),
-                        "publicKey"
-                );
+                    // Keygen
+                    try {
+                        run(dir, "vmn", "-keygen", "publicKey");
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }));
             }
+
+            // Wait for all servers to finish
+            for (Future<?> future : futures) {
+                future.get();  // Will throw if any subprocess failed
+            }
+            executor.shutdown();
             return Map.of("status", "Keygen complete");
         } catch (Exception e) {
             e.printStackTrace();
@@ -93,7 +116,7 @@ public class VerificatumController {
     public Map<String, String> generateCiphertexts() {
         try {
             File dir = new File(BASE_DIR + "/01");
-            run("vmnd", "-ciphs",
+            run(dir, "vmnd", "-ciphs",
                     new File(dir, "publicKey").getAbsolutePath(),
                     "100", "ciphertexts"
             );
@@ -114,13 +137,30 @@ public class VerificatumController {
     @PostMapping("/mix")
     public Map<String, String> mix() {
         try {
+            ExecutorService executor = Executors.newFixedThreadPool(NUM_SERVERS);
+            List<Future<?>> futures = new ArrayList<>();
+
             for (int i = 1; i <= NUM_SERVERS; i++) {
-                File dir = new File(BASE_DIR + "/0" + i);
-                run("vmn", "-mix",
-                        "-basedir", dir.getAbsolutePath(),
-                        "ciphertexts", "plaintexts"
-                );
+                final int index = i;
+                futures.add(executor.submit(() -> {
+                    File dir = new File(BASE_DIR + "/0" + index);
+                    try {
+                        run(dir, "vmn", "-mix", "ciphertexts", "plaintexts");
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }));
             }
+
+            for (Future<?> future : futures) {
+                future.get(); // Wait for each mix-server to finish
+            }
+
+            executor.shutdown();
             return Map.of("status", "Mixing complete");
         } catch (Exception e) {
             e.printStackTrace();
@@ -128,8 +168,9 @@ public class VerificatumController {
         }
     }
 
-    private static void run(String... command) throws IOException, InterruptedException {
+    private static void run(File workingDir, String... command) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder(command);
+        pb.directory(workingDir);
         pb.inheritIO();
         Process p = pb.start();
         int exitCode = p.waitFor();
