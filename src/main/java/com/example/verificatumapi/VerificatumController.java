@@ -104,6 +104,18 @@ public class VerificatumController {
             for (Future<?> future : futures) {
                 future.get();  // Will throw if any subprocess failed
             }
+
+            File dir = new File(BASE_DIR);
+            File publickKeyDir = new File(dir, "/01");
+            run(publickKeyDir, "vmnc", "-pkey", "-outi", "native",
+                    "protInfo.xml", "publicKey", "publicKeyNative");
+            File publicKeyNativeOrig = new File(publickKeyDir, "publicKeyNative");
+            File logsDir = new File(BASE_DIR, "/logs");
+            logsDir.mkdirs();
+            File publicKeyNativeDest = new File(logsDir, "publicKey");
+            java.nio.file.Files.copy(publicKeyNativeOrig.toPath(), publicKeyNativeDest.toPath(),
+                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
             executor.shutdown();
             return Map.of("status", "Keygen complete");
         } catch (Exception e) {
