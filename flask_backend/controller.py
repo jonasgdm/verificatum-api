@@ -46,6 +46,20 @@ class CypherTextController(MethodView):
         return jsonify(VerificatumApiService.cyphertexts())
 
 
+class KeyGenController(MethodView):
+    def get(self):
+        return jsonify(
+            {
+                "key": """MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwU6h1RHQlULPfr7FEZ6L
+9VV5FdxtEVxHX0uCmkZhAfvNzqT+dC4M0ZLHVcplMfThn3gS2v7UyMqv7K3Tjb8T
+yCzhX8cpS/pJfB7M8gTgz7HbYyaZp3zZaX2cwRZ8aD8zKYj2MWRbq3XY+o2VScMg
+0vv09U42SK1wMB8I8Zy3nUO8Jz5s8qbJpAxGn+5oX7H2MHrR4Ymh2kMCsPtU1DgZ
+OmkMGMKZulr6Yo6+MFev1cb9MB1kZ4VufC0cYlv10xW7tz7ya9x1V8lSn5pTLDeD
+cRZ2FXfXa7wxkqOe0B2Z94eNRIoFj2E/XGQzX7B7l3OqQg+Uv1wIDAQAB"""
+            }
+        )
+
+
 class Mix1Controller(MethodView):
     def post(self):
         return jsonify(VerificatumApiService.mix(1))

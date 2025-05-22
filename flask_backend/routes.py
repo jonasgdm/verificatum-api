@@ -4,6 +4,7 @@ from controller import *
 
 routes_bp = Blueprint("routes", __name__)
 
+routes_bp.add_url_rule("/api/keygen", view_func=KeyGenController.as_view("keygen"))
 
 routes_bp.add_url_rule("/api/mock", view_func=MockController.as_view("mock"))
 routes_bp.add_url_rule(
