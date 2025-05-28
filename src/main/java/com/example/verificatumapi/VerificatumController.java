@@ -180,6 +180,40 @@ public class VerificatumController {
         }
     }
 
+    @PostMapping("/verify")
+    public Map<String, String> verify(){
+        try {
+            ExecutorService executor = Executors.newFixedThreadPool(NUM_SERVERS);
+            List<Future<?>> futures = new ArrayList<>();
+
+            for (int i = 1; i <= NUM_SERVERS; i++) {
+                final int index = i;
+                futures.add(executor.submit(() -> {
+                    File dir = new File(BASE_DIR + "/0" + index);
+                    try {
+                        run(dir, "vmnv", "-mix", "protInfo.xml", "dir/nizkp/default");
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }));
+            }
+
+            for (Future<?> future : futures) {
+                future.get(); // Wait for each mix-server to finish
+            }
+
+            executor.shutdown();
+            return Map.of("status", "Successful verification");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Map.of("error", e.getMessage());
+        }
+    }
+
     private static void run(File workingDir, String... command) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.directory(workingDir);
