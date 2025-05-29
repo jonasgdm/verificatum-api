@@ -4,40 +4,112 @@ from services import VerificatumApiService
 import time
 import string
 import random
+import hashlib
 
 
-class MockController(MethodView):
+class AVTMockController(MethodView):
+
+    # {
+    #     "nMachines": 1,
+    #     "nContestOptions": [
+    #         10,
+    #         10,
+    #         10,
+    #         10,
+    #         10
+    #         ]
+    #     "nTotalVotes": 10,
+    #     "nAnyVotes": 1
+    #     "nDoubleVotes": 1
+    # }
+
     def post(self):
         data = request.get_json()
-        candidatos = data.get("candidatos")
-        votos = data.get("votos")
-        duplicatas = data.get("duplicatas")
-        # Gerar votos únicos com tokens 1..votos e votos A..(candidatos)
-        letras = string.ascii_uppercase[:candidatos]
 
-        votos_unicos = []
-        for i in range(1, votos - duplicatas + 1):
-            voto = {"token": str(i), "voto": random.choice(letras)}
-            votos_unicos.append(voto)
+        n_machines = data.get("nMachines")
+        number_contests_options = data.get("nContestOptions")
+        n_total_votes = data.get("nTotalVotes")
+        n_any_votes = data.get("nAnyVotes")
+        n_double_votes = data.get("nDoubleVotes")
 
-        # Duplicatas são cópias com o mesmo token, mas voto diferente
-        votos_mock = votos_unicos.copy()
-        votos_duplos = []
-        for _ in range(duplicatas):
-            base = random.choice(votos_unicos)
-            voto_duplo = {"token": base["token"], "voto": random.choice(letras)}
-            votos_duplos.append(voto_duplo)
-            votos_mock.append(voto_duplo)
+        candidate_digits = self.gen_candidates_codes(number_contests_options)
+        if len(number_contests_options) == 5:
+            number_contests_options = [0, 0] + number_contests_options
+        else:
+            number_contests_options + [0, 0, 0, 0, 0]
+        candidate_digits = self.gen_candidates_codes(number_contests_options)
 
-        votos = [v["voto"] for v in votos_duplos]
-        votos_cifrados = VerificatumApiService.cypher(votos)
+        gavt = []
+        for i in range(n_any_votes):
+            vote = self.genAnyVote(self.genTokenID(i), candidate_digits, n_machines)
+            gavt.append(vote)
 
-        return jsonify(
-            {
-                "total": len(votos_mock),
-                "votos": votos_mock,
-            }
-        )
+        for _ in range(n_double_votes):
+            double_Vote = random.choice(gavt)
+            gavt.append(double_Vote)
+
+        conventional = []
+        for i in range(n_total_votes - n_any_votes):
+            vote = self.genConventionalVote(candidate_digits)
+            conventional.append(vote)
+
+        return {"GAVT": gavt, "total": gavt + conventional}
+
+    def genConventionalVote(self, candidate_digits):
+        candidates = []
+        for codes in candidate_digits:
+            choice = random.choice(codes)  # escolher candidato
+            candidates.append(choice)
+        return {"candidates": candidates}
+
+    def genAnyVote(self, tokenid, candidate_codes, nmachines):
+        # ELEICOES MUNICIPAIS
+        # vereador: 5 digitos
+        # prefeito: 2 digitos
+
+        # ELEICOES NACIONAIS
+        # dep. federal: 4 digitos
+        # dep. estadual: 5 digitos
+        # Senador: 3 digitos
+        # Gov.: 2 digitos
+        # Presidente: 2 digitos
+        # [0, 0, 2, 3, 4, 5, 6]
+
+        metadata = {
+            "hasbiometry": True,
+            "votingMachineID": random.randint(1, nmachines),
+        }
+
+        candidates = []
+        for codes in candidate_codes:
+            choice = random.choice(codes)  # escolher candidato
+            candidates.append(choice)
+        return {"tokenID": tokenid, "candidates": candidates, "metadata": metadata}
+
+    def gen_candidates_codes(self, n_contest_options):
+        candidates_digits = [
+            5,
+            2,
+            4,
+            5,
+            3,
+            2,
+            2,
+        ]  # vereador, prefeito, dep. fed., est., senador, gov., pres.
+        candidate_codes = []
+        for i, n in enumerate(n_contest_options):
+            if n == 0:
+                continue  # pula cargos com 0 candidatos
+            digits = candidates_digits[i]
+            start = int("9" * digits)
+            codes = [start - j for j in range(n)]
+            candidate_codes.append(codes)
+
+        return candidate_codes
+
+    def genTokenID(voter_index: int, seed="mock-election-2025"):
+        base_string = f"{seed}-{voter_index}"
+        return hashlib.sha256(base_string.encode()).hexdigest()[:12]
 
 
 class CypherTextController(MethodView):
