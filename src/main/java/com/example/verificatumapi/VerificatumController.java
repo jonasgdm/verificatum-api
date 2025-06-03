@@ -105,6 +105,8 @@ public class VerificatumController {
                 future.get();  // Will throw if any subprocess failed
             }
 
+            executor.shutdown();
+
             File dir = new File(BASE_DIR);
             File publickKeyDir = new File(dir, "/01");
             run(publickKeyDir, "vmnc", "-pkey", "-outi", "native",
@@ -115,8 +117,6 @@ public class VerificatumController {
             File publicKeyNativeDest = new File(logsDir, "publicKey");
             java.nio.file.Files.copy(publicKeyNativeOrig.toPath(), publicKeyNativeDest.toPath(),
                                             java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-
-            executor.shutdown();
             return Map.of("status", "Keygen complete");
         } catch (Exception e) {
             e.printStackTrace();
@@ -173,6 +173,49 @@ public class VerificatumController {
             }
 
             executor.shutdown();
+
+            File dir = new File(BASE_DIR);
+            File serverDir = new File(dir, "/01");
+            File nizkpDir = new File(dir, "/01/dir/nizkp/default");
+            File proofsDir = new File(dir, "/01/dir/nizkp/default/proofs");
+            File logsDir = new File(dir, "/logs");
+            File protInfoOrig = new File(serverDir, "protInfo.xml");
+            File protInfoNizkpDest = new File(nizkpDir, "protInfo.xml");
+            File protInfoProofsDest = new File(proofsDir, "protInfo.xml");
+            java.nio.file.Files.copy(protInfoOrig.toPath(), protInfoNizkpDest.toPath());
+            java.nio.file.Files.copy(protInfoOrig.toPath(), protInfoProofsDest.toPath());
+
+            run(nizkpDir, "vmnc", "-ciphs", "-outi", "native",
+                    "protInfo.xml", "Ciphertexts.bt", "ciphertexts");
+            File ciphertextsNativeOrig = new File(nizkpDir, "ciphertexts");
+            logsDir.mkdirs();
+            File ciphertextsNativeDest = new File(logsDir, "ciphertexts");
+            java.nio.file.Files.copy(ciphertextsNativeOrig.toPath(), ciphertextsNativeDest.toPath(),
+                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+            run(nizkpDir, "vmnc", "-plain", "-outi", "native",
+                    "protInfo.xml", "Plaintexts.bt", "plaintexts");
+            File plaintextsNativeOrig = new File(nizkpDir, "plaintexts");
+            logsDir.mkdirs();
+            File plaintextsNativeDest = new File(logsDir, "plaintexts");
+            java.nio.file.Files.copy(plaintextsNativeOrig.toPath(), plaintextsNativeDest.toPath(),
+                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+            run(proofsDir, "vmnc", "-ciphs", "-outi", "native",
+                    "protInfo.xml", "Ciphertexts01.bt", "outputNode01");
+            File outputNode01Orig = new File(proofsDir, "outputNode01");
+            logsDir.mkdirs();
+            File outputNode01Dest = new File(logsDir, "outputNode01");
+            java.nio.file.Files.copy(outputNode01Orig.toPath(), outputNode01Dest.toPath(),
+                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+            run(proofsDir, "vmnc", "-ciphs", "-outi", "native",
+                    "protInfo.xml", "Ciphertexts02.bt", "outputNode02");
+            File outputNode02Orig = new File(proofsDir, "outputNode02");
+            logsDir.mkdirs();
+            File outputNode02Dest = new File(logsDir, "outputNode02");
+            java.nio.file.Files.copy(outputNode02Orig.toPath(), outputNode02Dest.toPath(),
+                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             return Map.of("status", "Mixing complete");
         } catch (Exception e) {
             e.printStackTrace();
