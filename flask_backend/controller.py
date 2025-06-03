@@ -7,6 +7,34 @@ import random
 import hashlib
 
 
+class SetupController(MethodView):
+    def post(self):
+        return jsonify(VerificatumApiService.setup())
+
+
+class KeyGenController(MethodView):
+    def get(self):
+        return jsonify(VerificatumApiService.get_key())
+
+    def post(self):
+        return jsonify(VerificatumApiService.keygen())
+
+
+class GenerateCyphertextsController(MethodView):
+    def post(self):
+        return jsonify(VerificatumApiService.cyphertexts())
+
+
+class MixController(MethodView):
+    def post(self):
+        return jsonify(VerificatumApiService.mix())
+
+
+class VerifyController(MethodView):
+    def post(self):
+        return jsonify(VerificatumApiService.verify())
+
+
 class AVTMockController(MethodView):
 
     # {
@@ -102,6 +130,7 @@ class AVTMockController(MethodView):
                 continue  # pula cargos com 0 candidatos
             digits = candidates_digits[i]
             start = int("9" * digits)
+
             codes = [start - j for j in range(n)]
             candidate_codes.append(codes)
 
@@ -110,26 +139,6 @@ class AVTMockController(MethodView):
     def genTokenID(voter_index: int, seed="mock-election-2025"):
         base_string = f"{seed}-{voter_index}"
         return hashlib.sha256(base_string.encode()).hexdigest()[:12]
-
-
-class CypherTextController(MethodView):
-    def get(self):
-
-        return jsonify(VerificatumApiService.cyphertexts())
-
-
-class KeyGenController(MethodView):
-    def get(self):
-        return jsonify(
-            {
-                "key": """MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwU6h1RHQlULPfr7FEZ6L
-9VV5FdxtEVxHX0uCmkZhAfvNzqT+dC4M0ZLHVcplMfThn3gS2v7UyMqv7K3Tjb8T
-yCzhX8cpS/pJfB7M8gTgz7HbYyaZp3zZaX2cwRZ8aD8zKYj2MWRbq3XY+o2VScMg
-0vv09U42SK1wMB8I8Zy3nUO8Jz5s8qbJpAxGn+5oX7H2MHrR4Ymh2kMCsPtU1DgZ
-OmkMGMKZulr6Yo6+MFev1cb9MB1kZ4VufC0cYlv10xW7tz7ya9x1V8lSn5pTLDeD
-cRZ2FXfXa7wxkqOe0B2Z94eNRIoFj2E/XGQzX7B7l3OqQg+Uv1wIDAQAB"""
-            }
-        )
 
 
 class Mix1Controller(MethodView):
