@@ -11,3 +11,4 @@ target/
 *.xml
 *.txt
 /verificatum-demo/*
+*.pyc
