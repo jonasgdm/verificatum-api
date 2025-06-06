@@ -9,7 +9,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 @RestController
@@ -24,6 +23,16 @@ public class VerificatumController {
     @PostMapping("/setup")
     public Map<String, String> setup() {
         try {
+            // Clean the entire base directory (except the base itself)
+            File baseDir = new File(BASE_DIR);
+            if (baseDir.exists()) {
+                for (File f : baseDir.listFiles()) {
+                    deleteRecursive(f); // delete 01/, 02/, 03/, logs/
+                }
+            } else {
+                baseDir.mkdirs(); // ensure it exists
+            }
+
             for (int i = 1; i <= NUM_SERVERS; i++) {
                 File serverDir = new File(BASE_DIR + "/0" + i);
                 serverDir.mkdirs();
@@ -84,6 +93,7 @@ public class VerificatumController {
 
             for (int i = 1; i <= NUM_SERVERS; i++) {
                 final int index = i;
+                Thread.sleep(1000);
                 futures.add(executor.submit(() -> {
                     File dir = new File(BASE_DIR + "/0" + index);
 
@@ -107,11 +117,10 @@ public class VerificatumController {
 
             executor.shutdown();
 
-            File dir = new File(BASE_DIR);
-            File publickKeyDir = new File(dir, "/01");
-            run(publickKeyDir, "vmnc", "-pkey", "-outi", "native",
+            File publicKeyDir = new File(BASE_DIR + "/01");
+            run(publicKeyDir, "vmnc", "-pkey", "-outi", "native",
                     "protInfo.xml", "publicKey", "publicKeyNative");
-            File publicKeyNativeOrig = new File(publickKeyDir, "publicKeyNative");
+            File publicKeyNativeOrig = new File(publicKeyDir, "publicKeyNative");
             File logsDir = new File(BASE_DIR, "/logs");
             logsDir.mkdirs();
             File publicKeyNativeDest = new File(logsDir, "publicKey");
@@ -154,6 +163,7 @@ public class VerificatumController {
 
             for (int i = 1; i <= NUM_SERVERS; i++) {
                 final int index = i;
+                Thread.sleep(1000);
                 futures.add(executor.submit(() -> {
                     File dir = new File(BASE_DIR + "/0" + index);
                     try {
@@ -174,11 +184,10 @@ public class VerificatumController {
 
             executor.shutdown();
 
-            File dir = new File(BASE_DIR);
-            File serverDir = new File(dir, "/01");
-            File nizkpDir = new File(dir, "/01/dir/nizkp/default");
-            File proofsDir = new File(dir, "/01/dir/nizkp/default/proofs");
-            File logsDir = new File(dir, "/logs");
+            File serverDir = new File(BASE_DIR + "/01");
+            File nizkpDir = new File(BASE_DIR + "/01/dir/nizkp/default");
+            File proofsDir = new File(BASE_DIR + "/01/dir/nizkp/default/proofs");
+            File logsDir = new File(BASE_DIR + "/logs");
             File protInfoOrig = new File(serverDir, "protInfo.xml");
             File protInfoNizkpDest = new File(nizkpDir, "protInfo.xml");
             File protInfoProofsDest = new File(proofsDir, "protInfo.xml");
@@ -231,6 +240,7 @@ public class VerificatumController {
 
             for (int i = 1; i <= NUM_SERVERS; i++) {
                 final int index = i;
+                Thread.sleep(1000);
                 futures.add(executor.submit(() -> {
                     File dir = new File(BASE_DIR + "/0" + index);
                     try {
@@ -260,11 +270,27 @@ public class VerificatumController {
     private static void run(File workingDir, String... command) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.directory(workingDir);
-        pb.inheritIO();
+        File log = new File(workingDir, "vmn.log");
+        log.delete();
+        pb.redirectOutput(log);
+        pb.redirectErrorStream(true);
         Process p = pb.start();
         int exitCode = p.waitFor();
         if (exitCode != 0) {
             throw new RuntimeException("Command failed: " + String.join(" ", command));
         }
     }
+    
+    private static void deleteRecursive(File file) {
+        if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            if (files != null) {
+                for (File child : files) {
+                    deleteRecursive(child);
+                }
+            }
+        }
+        file.delete();
+    }
+
 }
