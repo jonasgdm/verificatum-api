@@ -11,6 +11,14 @@ routes_bp.add_url_rule(
     view_func=GenerateCyphertextsController.as_view("generate-cyphertexts"),
 )
 routes_bp.add_url_rule(
+    "/api/ciphertexts01",
+    view_func=Cypher01Controller.as_view("cypher01"),
+)
+routes_bp.add_url_rule(
+    "/api/ciphertexts02",
+    view_func=Cypher02Controller.as_view("cypher02"),
+)
+routes_bp.add_url_rule(
     "/api/mix",
     view_func=MixController.as_view("mix"),
 )

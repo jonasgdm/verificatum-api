@@ -24,6 +24,27 @@ class GenerateCyphertextsController(MethodView):
     def post(self):
         return jsonify(VerificatumApiService.cyphertexts())
 
+    def get(self):
+        with open("logs/ciphsNative", "r") as f:
+            linhas = [linha.strip() for linha in f if linha.strip()]
+        return jsonify(linhas)
+
+
+class Cypher01Controller(MethodView):
+    def get(self):
+        with open("logs/Ciphertexts01Native", "r") as f:
+            linhas = [linha.strip() for linha in f if linha.strip()]
+
+        return jsonify(linhas)
+
+
+class Cypher02Controller(MethodView):
+    def get(self):
+        with open("logs/Ciphertexts02Native", "r") as f:
+            linhas = [linha.strip() for linha in f if linha.strip()]
+
+        return jsonify(linhas)
+
 
 class MixController(MethodView):
     def post(self):
@@ -82,13 +103,6 @@ class AVTMockController(MethodView):
             conventional.append(vote)
 
         return {"GAVT": gavt, "total": gavt + conventional}
-
-    def genConventionalVote(self, candidate_digits):
-        candidates = []
-        for codes in candidate_digits:
-            choice = random.choice(codes)  # escolher candidato
-            candidates.append(choice)
-        return {"candidates": candidates}
 
     def genAnyVote(self, tokenid, candidate_codes, nmachines):
         # ELEICOES MUNICIPAIS
