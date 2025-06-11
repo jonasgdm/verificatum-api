@@ -9,7 +9,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 @RestController
@@ -24,6 +23,16 @@ public class VerificatumController {
     @PostMapping("/setup")
     public Map<String, String> setup() {
         try {
+            // Clean the entire base directory (except the base itself)
+            File baseDir = new File(BASE_DIR);
+            if (baseDir.exists()) {
+                for (File f : baseDir.listFiles()) {
+                    deleteRecursive(f); // delete 01/, 02/, 03/, logs/
+                }
+            } else {
+                baseDir.mkdirs(); // ensure it exists
+            }
+
             for (int i = 1; i <= NUM_SERVERS; i++) {
                 File serverDir = new File(BASE_DIR + "/0" + i);
                 serverDir.mkdirs();
@@ -84,6 +93,7 @@ public class VerificatumController {
 
             for (int i = 1; i <= NUM_SERVERS; i++) {
                 final int index = i;
+                Thread.sleep(1000);
                 futures.add(executor.submit(() -> {
                     File dir = new File(BASE_DIR + "/0" + index);
 
@@ -105,18 +115,17 @@ public class VerificatumController {
                 future.get();  // Will throw if any subprocess failed
             }
 
-            File dir = new File(BASE_DIR);
-            File publickKeyDir = new File(dir, "/01");
-            run(publickKeyDir, "vmnc", "-pkey", "-outi", "native",
+            executor.shutdown();
+
+            File publicKeyDir = new File(BASE_DIR + "/01");
+            run(publicKeyDir, "vmnc", "-pkey", "-outi", "native",
                     "protInfo.xml", "publicKey", "publicKeyNative");
-            File publicKeyNativeOrig = new File(publickKeyDir, "publicKeyNative");
+            File publicKeyNativeOrig = new File(publicKeyDir, "publicKeyNative");
             File logsDir = new File(BASE_DIR, "/logs");
             logsDir.mkdirs();
             File publicKeyNativeDest = new File(logsDir, "publicKey");
             java.nio.file.Files.copy(publicKeyNativeOrig.toPath(), publicKeyNativeDest.toPath(),
                                             java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-
-            executor.shutdown();
             return Map.of("status", "Keygen complete");
         } catch (Exception e) {
             e.printStackTrace();
@@ -154,6 +163,7 @@ public class VerificatumController {
 
             for (int i = 1; i <= NUM_SERVERS; i++) {
                 final int index = i;
+                Thread.sleep(1000);
                 futures.add(executor.submit(() -> {
                     File dir = new File(BASE_DIR + "/0" + index);
                     try {
@@ -173,6 +183,48 @@ public class VerificatumController {
             }
 
             executor.shutdown();
+
+            File serverDir = new File(BASE_DIR + "/01");
+            File nizkpDir = new File(BASE_DIR + "/01/dir/nizkp/default");
+            File proofsDir = new File(BASE_DIR + "/01/dir/nizkp/default/proofs");
+            File logsDir = new File(BASE_DIR + "/logs");
+            File protInfoOrig = new File(serverDir, "protInfo.xml");
+            File protInfoNizkpDest = new File(nizkpDir, "protInfo.xml");
+            File protInfoProofsDest = new File(proofsDir, "protInfo.xml");
+            java.nio.file.Files.copy(protInfoOrig.toPath(), protInfoNizkpDest.toPath());
+            java.nio.file.Files.copy(protInfoOrig.toPath(), protInfoProofsDest.toPath());
+
+            run(nizkpDir, "vmnc", "-ciphs", "-outi", "native",
+                    "protInfo.xml", "Ciphertexts.bt", "ciphertexts");
+            File ciphertextsNativeOrig = new File(nizkpDir, "ciphertexts");
+            logsDir.mkdirs();
+            File ciphertextsNativeDest = new File(logsDir, "ciphertexts");
+            java.nio.file.Files.copy(ciphertextsNativeOrig.toPath(), ciphertextsNativeDest.toPath(),
+                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+            run(nizkpDir, "vmnc", "-plain", "-outi", "native",
+                    "protInfo.xml", "Plaintexts.bt", "plaintexts");
+            File plaintextsNativeOrig = new File(nizkpDir, "plaintexts");
+            logsDir.mkdirs();
+            File plaintextsNativeDest = new File(logsDir, "plaintexts");
+            java.nio.file.Files.copy(plaintextsNativeOrig.toPath(), plaintextsNativeDest.toPath(),
+                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+            run(proofsDir, "vmnc", "-ciphs", "-outi", "native",
+                    "protInfo.xml", "Ciphertexts01.bt", "outputNode01");
+            File outputNode01Orig = new File(proofsDir, "outputNode01");
+            logsDir.mkdirs();
+            File outputNode01Dest = new File(logsDir, "outputNode01");
+            java.nio.file.Files.copy(outputNode01Orig.toPath(), outputNode01Dest.toPath(),
+                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+            run(proofsDir, "vmnc", "-ciphs", "-outi", "native",
+                    "protInfo.xml", "Ciphertexts02.bt", "outputNode02");
+            File outputNode02Orig = new File(proofsDir, "outputNode02");
+            logsDir.mkdirs();
+            File outputNode02Dest = new File(logsDir, "outputNode02");
+            java.nio.file.Files.copy(outputNode02Orig.toPath(), outputNode02Dest.toPath(),
+                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             return Map.of("status", "Mixing complete");
         } catch (Exception e) {
             e.printStackTrace();
@@ -188,6 +240,7 @@ public class VerificatumController {
 
             for (int i = 1; i <= NUM_SERVERS; i++) {
                 final int index = i;
+                Thread.sleep(1000);
                 futures.add(executor.submit(() -> {
                     File dir = new File(BASE_DIR + "/0" + index);
                     try {
@@ -217,11 +270,27 @@ public class VerificatumController {
     private static void run(File workingDir, String... command) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.directory(workingDir);
-        pb.inheritIO();
+        File log = new File(workingDir, "vmn.log");
+        log.delete();
+        pb.redirectOutput(log);
+        pb.redirectErrorStream(true);
         Process p = pb.start();
         int exitCode = p.waitFor();
         if (exitCode != 0) {
             throw new RuntimeException("Command failed: " + String.join(" ", command));
         }
     }
+    
+    private static void deleteRecursive(File file) {
+        if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            if (files != null) {
+                for (File child : files) {
+                    deleteRecursive(child);
+                }
+            }
+        }
+        file.delete();
+    }
+
 }
