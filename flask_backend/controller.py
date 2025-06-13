@@ -1,33 +1,27 @@
 from flask.views import MethodView
 from flask import request, jsonify
-from services import VerificatumApiService
+from services.publicKey_service import VerificatumApiService
+from services.vote_processing_services import process_gavt
 import time
 import string
 import random
 import hashlib
 
 
-class SetupController(MethodView):
-    def post(self):
-        return jsonify(VerificatumApiService.setup())
-
-
-class KeyGenController(MethodView):
+class PublicKeyController(MethodView):
     def get(self):
         return jsonify(VerificatumApiService.get_key())
 
+
+class GAVTController(MethodView):
     def post(self):
-        return jsonify(VerificatumApiService.keygen())
+        gavt = request.get_json()
 
+        if not isinstance(gavt, list):
+            return jsonify({"error": "Esperado lista de votos"}), 400
+        result = process_gavt(gavt)
 
-class GenerateCyphertextsController(MethodView):
-    def post(self):
-        return jsonify(VerificatumApiService.cyphertexts())
-
-    def get(self):
-        with open("logs/ciphsNative", "r") as f:
-            linhas = [linha.strip() for linha in f if linha.strip()]
-        return jsonify(linhas)
+        return jsonify({"message": "Duplicatas processadas e salvas", **result}), 200
 
 
 class Cypher01Controller(MethodView):
@@ -44,16 +38,6 @@ class Cypher02Controller(MethodView):
             linhas = [linha.strip() for linha in f if linha.strip()]
 
         return jsonify(linhas)
-
-
-class MixController(MethodView):
-    def post(self):
-        return jsonify(VerificatumApiService.mix())
-
-
-class VerifyController(MethodView):
-    def post(self):
-        return jsonify(VerificatumApiService.verify())
 
 
 class AVTMockController(MethodView):
