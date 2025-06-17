@@ -9,21 +9,46 @@ from rich.spinner import Spinner
 from rich.table import Table
 import questionary
 import json
+from services.MockElection import MockElection
+from utils.protinfo_parser import load_file
+
 
 # from services.mock_vote_service import (
 #     generate_mock_votes,
 # )  # serviço que você irá implementar
-from services.electionConfig_parser import load_election_config
+from utils.electionConfig_parser import load_election_config
 
 console = Console()
+
+
+def display_tally(election: MockElection):
+    """Exibe o tally da eleição formatado com rich."""
+    console.print("\n[bold yellow]Tally Final da Simulação[/bold yellow]\n")
+
+    for cargo, votos in election.tally.items():
+        table = Table(
+            title=f"Tally - {cargo.upper()}",
+            show_header=True,
+            header_style="bold green",
+        )
+        table.add_column("Candidato", justify="center")
+        table.add_column("Votos", justify="center")
+
+        for candidato, count in votos.items():
+            table.add_row(str(candidato), str(count))
+
+        console.print(table)
 
 
 def format_config(config):
     base = (
         f"[bold]Tipo de Eleição:[/bold] {config['type']}\n"
-        f"[bold]Votos totais:[/bold] {config['totalVotes']}\n"
-        f"[bold]Any Votes:[/bold] {config['anyVotes']} | [bold]Votos Convencionais:[/bold] {config["totalVotes"] - config["anyVotes"]} \n"
-        f"[bold]Votos Nulos:[/bold] {config['nullVotes']} | [bold]Votos Branco:[/bold] {config["blankVotes"]} \n"
+        f"[bold]Votos totais:[/bold] {config['anyVotes'] + config['doubleVotes'] + config['conventionalVotes']}\n"
+        f"[bold]Any Votes:[/bold] {config['anyVotes']} | "
+        f"[bold]Votos Convencionais:[/bold] {config['conventionalVotes']} | "
+        f"[bold]Votos Duplicados:[/bold] {config['doubleVotes']} \n"
+        f"[bold]Votos Nulos:[/bold] {config['nullVotes']} | "
+        f"[bold]Votos Branco:[/bold] {config['blankVotes']} \n"
     )
     return base
 
@@ -58,10 +83,14 @@ def show():
     if escolha == "Gerar Votos":
         spinner = Spinner("dots", text="Gerando votos simulados...")
         with Live(spinner, refresh_per_second=10, transient=True):
-            # generate_mock_votes(config)
-            return
+            chave = load_file("logs/publicKey")
+            e = MockElection(chave, config)
+            e.simulate()
+            display_tally(e)
         console.print(
-            "\n[bold green]✓ Votos simulados gerados com sucesso![/bold green]"
+            "\n[bold green]✓ Lista de AnyVotes disponível em output/ ![/bold green]"
         )
+        return True
     else:
         console.print("[italic]Operação cancelada.[/italic]")
+        return False

@@ -5,35 +5,42 @@
     "numberBallots": 1,
     "blankVotes": 0,
     "nullVotes": 0,
-    "totalVotes": 10,
+    "conventionalVotes": 10,
     "options": [
         {
             "contest": "vereador",
-            "candidates": 10
+            "candidates": 10,
+            "digits": 5
         },
         {
             "contest": "prefeito",
-            "candidates": 10
+            "candidates": 10,
+            "digits": 2
         },
         {
             "contest": "deputado_estadual",
-            "candidates": 0
+            "candidates": 2,
+            "digits": 5
         },
         {
             "contest": "deputado_federal",
-            "candidates": 0
+            "candidates": 2,
+            "digits": 4
         },
         {
             "contest": "senador",
-            "candidates": 0
+            "candidates": 2,
+            "digits": 3
         },
         {
             "contest": "governador",
-            "candidates": 0
+            "candidates": 2,
+            "digits": 2
         },
         {
             "contest": "presidente",
-            "candidates": 0
+            "candidates": 2,
+            "digits": 2
         }
     ]
 }

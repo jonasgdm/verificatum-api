@@ -13,7 +13,7 @@ def load_election_config():
 
     parsed = {
         "type": data.get("type"),
-        "totalVotes": data.get("totalVotes"),
+        "conventionalVotes": data.get("conventionalVotes"),
         "numberBallots": data.get("numberBallots"),
         "anyVotes": data.get("anyVotes"),
         "doubleVotes": data.get("doubleVotes"),

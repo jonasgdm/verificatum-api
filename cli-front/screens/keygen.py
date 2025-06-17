@@ -6,12 +6,14 @@ from rich.spinner import Spinner
 import questionary
 
 from services.verificatum_api import post_keygen
+from utils.protinfo_parser import load_file
 
 console = Console()
 
 
 def show():
     console.clear()
+    print("AA")
     escolha = questionary.select(
         "Deseja gerar a chave pública da eleição?",
         choices=["🔑 Iniciar KeyGen", "↩ Voltar"],
@@ -30,9 +32,14 @@ def show():
         try:
             chave = load_file("logs/publicKey")
             console.print(Panel(chave.strip(), title="Chave Pública da Eleição"))
+            input("Continuar")
+            return True
+
         except FileNotFoundError:
             console.print(
                 "[red]Arquivo da chave não encontrado em verificatum-demo/logs/publicKey[/red]"
             )
+            return False
     else:
         console.print("\n[bold red]Erro na geração da chave com /keygen[/bold red]")
+        return False

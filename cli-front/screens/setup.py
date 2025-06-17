@@ -10,7 +10,7 @@ import questionary
 
 from services.verificatum_api import post_setup
 
-from services.protinfo_parser import parse_protinfo
+from utils.protinfo_parser import parse_protinfo
 
 console = Console()
 
@@ -75,7 +75,10 @@ def show():
                 f"[bold]Mix Servers:[/bold]\n{partes}"
             )
             console.print(Panel(bloco, title="Configuração do Protocolo"))
+            return True
         else:
             console.print("\n[bold red]Erro ao executar o setup.[/bold red]\n")
+            return False
     else:
         console.print("[italic]Setup cancelado.[/italic]")
+        return False
