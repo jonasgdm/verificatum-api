@@ -34,12 +34,13 @@ function encryptWithPublicKey(plaintext, publicKeyJsonString) {
     return JSON.stringify(root.toByteArray());
 }
 
-// 👇 Esse bloco vai FORA da função, no final do arquivo
 if (require.main === module) {
-    const publicKeyPath = process.argv[2];
-    const plaintext = process.argv[3];
-
-    const publicKeyJsonString = fs.readFileSync(publicKeyPath, "utf-8");
-    const ciphertext = encryptWithPublicKey(plaintext, publicKeyJsonString);
-    console.log(ciphertext); // Isso é capturado pelo Python
+    const plaintext = process.argv[2];
+    let input = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", chunk => input += chunk);
+    process.stdin.on("end", () => {
+        const ciphertext = encryptWithPublicKey(plaintext, input);
+        console.log(ciphertext);
+    });
 }

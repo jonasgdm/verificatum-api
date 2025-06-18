@@ -75,6 +75,7 @@ def show():
                 f"[bold]Mix Servers:[/bold]\n{partes}"
             )
             console.print(Panel(bloco, title="Configuração do Protocolo"))
+            input("[Continuar]")
             return True
         else:
             console.print("\n[bold red]Erro ao executar o setup.[/bold red]\n")

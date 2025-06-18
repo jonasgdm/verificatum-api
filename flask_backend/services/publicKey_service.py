@@ -6,7 +6,7 @@ class VerificatumApiService:
     @staticmethod
     def get_key():
         try:
-            with open("../verificatum-demo/01/publicKey", "rb") as f:
+            with open("../cli-front/mixnet/mydemodir/Party01/publicKey", "rb") as f:
                 key_bytes = f.read()
             return list(key_bytes)
         except FileNotFoundError:

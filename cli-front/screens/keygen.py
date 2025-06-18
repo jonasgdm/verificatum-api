@@ -13,7 +13,6 @@ console = Console()
 
 def show():
     console.clear()
-    print("AA")
     escolha = questionary.select(
         "Deseja gerar a chave pública da eleição?",
         choices=["🔑 Iniciar KeyGen", "↩ Voltar"],
@@ -32,7 +31,7 @@ def show():
         try:
             chave = load_file("logs/publicKey")
             console.print(Panel(chave.strip(), title="Chave Pública da Eleição"))
-            input("Continuar")
+            input("[Continuar]")
             return True
 
         except FileNotFoundError:

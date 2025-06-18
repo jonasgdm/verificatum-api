@@ -24,7 +24,7 @@ def show():
     titulo = "[bold cyan]AnyWhere Voting - Simulação[/bold cyan]"
     descricao = (
         "[white]Simulação de parte de processo de votação com mobilidade; [/white]\n"
-        "\n[white]Funcionalidades: geração de votos, detecção de duplicatas e acompanhar a cifragem.[/white]"
+        "\n[white]Funcionalidades: geração de votos, detecção de duplicatas e mixing.[/white]"
     )
 
     painel = Panel(
@@ -44,13 +44,13 @@ def show():
     ).ask()
 
     if escolha == "[Iniciar]":
-        return "start"
+        return True
     elif escolha == "[Sobre]":
         console.print(
             "\n[italic]Sistema experimental baseado em tokens, mixnets e criptografia homomórfica.[/italic]"
         )
         input("\nPressione Enter para voltar.")
-        return show_home_screen()
+        return show()
     else:
         console.print("[red]Encerrando...[/red]")
         sys.exit()

@@ -4,12 +4,12 @@ import subprocess
 import os
 import json
 import csv
+import ast
 
 
 class MockElection:
-    def __init__(self, public_key_str: str, election_config: dict):
+    def __init__(self, public_key_str, election_config: dict):
         self.public_key_str = public_key_str
-        self.public_key_path = "public_key.json"  # Ex: "publicKey.json"
         self.config = election_config
 
         # Vai conter objetos AnyVote simulados
@@ -103,9 +103,9 @@ class MockElection:
         raise NotImplementedError
 
     def encrypt(self, value: str) -> str:
-        """Chama o script Node.js para cifrar o valor e retorna a string JSON do ByteTree cifrado."""
         result = subprocess.run(
-            ["node", "encryptor/encrypt.js", self.public_key_path, value],
+            ["node", "encryptor/encrypt.js", value],
+            input=self.public_key_str,
             capture_output=True,
             text=True,
         )
@@ -113,7 +113,15 @@ class MockElection:
         if result.returncode != 0:
             raise RuntimeError(f"Erro ao cifrar: {result.stderr}")
 
-        return result.stdout.strip()
+        str_restult = result.stdout.strip()
+
+        # Converter para bytes
+        byte_data = bytes(ast.literal_eval(str_restult))
+
+        # Converter para hexadecimal
+        hex_string = byte_data.hex()
+
+        return hex_string
 
     def double_vote(self):
         """Duplica um anyVote já existente na GAVT usando o mesmo tokenID."""

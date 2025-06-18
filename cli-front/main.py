@@ -1,19 +1,12 @@
-from screens import setup, keygen, mock, mix
+from screens import home, setup, keygen, mock, mix, mix_demo
 
 
 def main():
-    if setup.show() is False:
-        interrupt()
-        return
-    if keygen.show() is False:
-        interrupt()
-        return
-    if mock.show() is False:
-        interrupt()
-        return
-
-
-# mock.show()
+    # screens = [home.show, setup.show, keygen.show, mock.show, mix_demo.show]
+    screens = [mix_demo.show]
+    for screen in screens:
+        if not screen():
+            break
 
 
 def interrupt():

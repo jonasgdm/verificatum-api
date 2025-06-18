@@ -83,13 +83,18 @@ def show():
     if escolha == "Gerar Votos":
         spinner = Spinner("dots", text="Gerando votos simulados...")
         with Live(spinner, refresh_per_second=10, transient=True):
-            chave = load_file("logs/publicKey")
-            e = MockElection(chave, config)
+            # chave = load_file("logs/publicKey")
+            with open("../verificatum-demo/01/publicKey", "rb") as f:
+                key_bytes = f.read()
+                key = json.dumps(list(key_bytes))
+
+            e = MockElection(key, config)
             e.simulate()
             display_tally(e)
         console.print(
             "\n[bold green]✓ Lista de AnyVotes disponível em output/ ![/bold green]"
         )
+        input("[Continuar]")
         return True
     else:
         console.print("[italic]Operação cancelada.[/italic]")
