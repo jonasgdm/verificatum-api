@@ -137,7 +137,8 @@ public class MixnetCommon {
                     File dir = new File(baseDir + "/0" + index);
                     try {
                         run(dir, "vmn", "-decrypt", "shuffled-ciphertexts", "plaintexts");
-                    } catch (Exception e) {
+                    } catch (IOException | InterruptedException e) {
+                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
                 }));
@@ -146,16 +147,9 @@ public class MixnetCommon {
             for (Future<?> f : futures) f.get();
             executor.shutdown();
 
-            File dir = new File(baseDir + "/01/dir/nizkp/default");
-            File logs = new File(baseDir + "/logs");
-            logs.mkdirs();
-
-            run(dir, "vmnc", "-plain", "-outi", "native",
-                    "protInfo.xml", "Plaintexts.bt", "plaintexts");
-
-            Files.copy(new File(dir, "plaintexts").toPath(),
-                    new File(logs, "plaintexts").toPath(),
-                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            File src = new File(baseDir + "/01/plaintexts");
+            File dest = new File(baseDir + "/logs/plaintexts");
+            Files.copy(src.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
             return Map.of("status", "Decryption complete");
         } catch (Exception e) {
