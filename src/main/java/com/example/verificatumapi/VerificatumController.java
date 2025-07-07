@@ -5,11 +5,6 @@ import org.springframework.web.bind.annotation.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.ArrayList;
-import java.util.List;
 
 @RestController
 @RequestMapping("/verificatum")
@@ -23,36 +18,39 @@ public class VerificatumController {
     @PostMapping("/setup")
     public Map<String, String> setup() {
         try {
-            // Clean the entire base directory (except the base itself)
             File baseDir = new File(BASE_DIR);
             if (baseDir.exists()) {
                 for (File f : baseDir.listFiles()) {
-                    deleteRecursive(f); // delete 01/, 02/, 03/, logs/
+                    deleteRecursive(f);
                 }
             } else {
-                baseDir.mkdirs(); // ensure it exists
+                baseDir.mkdirs();
             }
 
             for (int i = 1; i <= NUM_SERVERS; i++) {
                 File serverDir = new File(BASE_DIR + "/0" + i);
                 serverDir.mkdirs();
 
-                // Step 0: Generate stub
-                run(serverDir, "vmni", "-prot",
+                File bbDir = new File(serverDir, "bb");
+                bbDir.mkdirs();
+
+                run(serverDir,
+                        "vmni",
+                        "-prot",
+                        "-bullboard", "com.verificatum.protocol.com.USBBulletinBoard",
                         "-sid", SESSION_ID,
                         "-name", ELECTION_NAME,
                         "-nopart", String.valueOf(NUM_SERVERS),
                         "-thres", "2"
                 );
 
-                // Step 1: Generate party info
-                run(serverDir, "vmni", "-party",
+                run(serverDir,
+                        "vmni",
+                        "-party",
                         "-name", "MixServer_0" + i,
-                        "-http", "http://localhost:804" + i,
-                        "-hint", "localhost:404" + i
+                        "-bbdir", bbDir.getAbsolutePath()
                 );
 
-                // Rename localProtInfo.xml to protInfo0X.xml
                 new File(serverDir, "localProtInfo.xml")
                         .renameTo(new File(serverDir, "protInfo0" + i + ".xml"));
             }
@@ -85,48 +83,26 @@ public class VerificatumController {
         }
     }
 
-    @PostMapping("/keygen")
-    public Map<String, String> keygen() {
+    // Keygen now takes a party index to run individually
+    @PostMapping("/keygen/{party}")
+    public Map<String, String> keygen(@PathVariable("party") int party) {
         try {
-            ExecutorService executor = Executors.newFixedThreadPool(NUM_SERVERS);
-            List<Future<?>> futures = new ArrayList<>();
+            if (party < 1 || party > NUM_SERVERS)
+                return Map.of("error", "Invalid party index");
 
-            for (int i = 1; i <= NUM_SERVERS; i++) {
-                final int index = i;
-                Thread.sleep(1000);
-                futures.add(executor.submit(() -> {
-                    File dir = new File(BASE_DIR + "/0" + index);
-
-                    // Keygen
-                    try {
-                        run(dir, "vmn", "-keygen", "publicKey");
-                    } catch (IOException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                }));
-            }
-
-            // Wait for all servers to finish
-            for (Future<?> future : futures) {
-                future.get();  // Will throw if any subprocess failed
-            }
-
-            executor.shutdown();
-
-            File publicKeyDir = new File(BASE_DIR + "/01");
-            run(publicKeyDir, "vmnc", "-pkey", "-outi", "native",
-                    "protInfo.xml", "publicKey", "publicKeyNative");
-            File publicKeyNativeOrig = new File(publicKeyDir, "publicKeyNative");
-            File logsDir = new File(BASE_DIR, "/logs");
-            logsDir.mkdirs();
-            File publicKeyNativeDest = new File(logsDir, "publicKey");
-            java.nio.file.Files.copy(publicKeyNativeOrig.toPath(), publicKeyNativeDest.toPath(),
-                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            return Map.of("status", "Keygen complete");
+            File dir = new File(BASE_DIR + "/0" + party);
+            run(dir, "vmn", "-keygen", "publicKey");
+            
+            // File publicKeyDir = new File(BASE_DIR + "/01");
+            // run(publicKeyDir, "vmnc", "-pkey", "-outi", "native",
+            //         "protInfo.xml", "publicKey", "publicKeyNative");
+            // File publicKeyNativeOrig = new File(publicKeyDir, "publicKeyNative");
+            // File logsDir = new File(BASE_DIR, "/logs");
+            // logsDir.mkdirs();
+            // File publicKeyNativeDest = new File(logsDir, "publicKey");
+            // java.nio.file.Files.copy(publicKeyNativeOrig.toPath(), publicKeyNativeDest.toPath(),
+            //                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            return Map.of("status", "Keygen complete for party " + party);
         } catch (Exception e) {
             e.printStackTrace();
             return Map.of("error", e.getMessage());
@@ -137,6 +113,7 @@ public class VerificatumController {
     public Map<String, String> generateCiphertexts() {
         try {
             File dir = new File(BASE_DIR + "/01");
+
             run(dir, "vmnd", "-ciphs",
                     new File(dir, "publicKey").getAbsolutePath(),
                     "100", "ciphertexts"
@@ -155,112 +132,76 @@ public class VerificatumController {
         }
     }
 
-    @PostMapping("/mix")
-    public Map<String, String> mix() {
+    // Mix now also works per party sequentially
+    @PostMapping("/mix/{party}")
+    public Map<String, String> mix(@PathVariable("party") int party) {
         try {
-            ExecutorService executor = Executors.newFixedThreadPool(NUM_SERVERS);
-            List<Future<?>> futures = new ArrayList<>();
+            if (party < 1 || party > NUM_SERVERS)
+                return Map.of("error", "Invalid party index");
 
-            for (int i = 1; i <= NUM_SERVERS; i++) {
-                final int index = i;
-                Thread.sleep(1000);
-                futures.add(executor.submit(() -> {
-                    File dir = new File(BASE_DIR + "/0" + index);
-                    try {
-                        run(dir, "vmn", "-mix", "ciphertexts", "plaintexts");
-                    } catch (IOException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                }));
-            }
+            File dir = new File(BASE_DIR + "/0" + party);
+            run(dir, "vmn", "-mix", "ciphertexts", "plaintexts");
 
-            for (Future<?> future : futures) {
-                future.get(); // Wait for each mix-server to finish
-            }
+            // File serverDir = new File(BASE_DIR + "/01");
+            // File nizkpDir = new File(BASE_DIR + "/01/dir/nizkp/default");
+            // File proofsDir = new File(BASE_DIR + "/01/dir/nizkp/default/proofs");
+            // File logsDir = new File(BASE_DIR + "/logs");
+            // File protInfoOrig = new File(serverDir, "protInfo.xml");
+            // File protInfoNizkpDest = new File(nizkpDir, "protInfo.xml");
+            // File protInfoProofsDest = new File(proofsDir, "protInfo.xml");
+            // java.nio.file.Files.copy(protInfoOrig.toPath(), protInfoNizkpDest.toPath());
+            // java.nio.file.Files.copy(protInfoOrig.toPath(), protInfoProofsDest.toPath());
 
-            executor.shutdown();
+            // run(nizkpDir, "vmnc", "-ciphs", "-outi", "native",
+            //         "protInfo.xml", "Ciphertexts.bt", "ciphertexts");
+            // File ciphertextsNativeOrig = new File(nizkpDir, "ciphertexts");
+            // logsDir.mkdirs();
+            // File ciphertextsNativeDest = new File(logsDir, "ciphertexts");
+            // java.nio.file.Files.copy(ciphertextsNativeOrig.toPath(), ciphertextsNativeDest.toPath(),
+            //                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-            File serverDir = new File(BASE_DIR + "/01");
-            File nizkpDir = new File(BASE_DIR + "/01/dir/nizkp/default");
-            File proofsDir = new File(BASE_DIR + "/01/dir/nizkp/default/proofs");
-            File logsDir = new File(BASE_DIR + "/logs");
-            File protInfoOrig = new File(serverDir, "protInfo.xml");
-            File protInfoNizkpDest = new File(nizkpDir, "protInfo.xml");
-            File protInfoProofsDest = new File(proofsDir, "protInfo.xml");
-            java.nio.file.Files.copy(protInfoOrig.toPath(), protInfoNizkpDest.toPath());
-            java.nio.file.Files.copy(protInfoOrig.toPath(), protInfoProofsDest.toPath());
+            // run(nizkpDir, "vmnc", "-plain", "-outi", "native",
+            //         "protInfo.xml", "Plaintexts.bt", "plaintexts");
+            // File plaintextsNativeOrig = new File(nizkpDir, "plaintexts");
+            // logsDir.mkdirs();
+            // File plaintextsNativeDest = new File(logsDir, "plaintexts");
+            // java.nio.file.Files.copy(plaintextsNativeOrig.toPath(), plaintextsNativeDest.toPath(),
+            //                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-            run(nizkpDir, "vmnc", "-ciphs", "-outi", "native",
-                    "protInfo.xml", "Ciphertexts.bt", "ciphertexts");
-            File ciphertextsNativeOrig = new File(nizkpDir, "ciphertexts");
-            logsDir.mkdirs();
-            File ciphertextsNativeDest = new File(logsDir, "ciphertexts");
-            java.nio.file.Files.copy(ciphertextsNativeOrig.toPath(), ciphertextsNativeDest.toPath(),
-                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            // run(proofsDir, "vmnc", "-ciphs", "-outi", "native",
+            //         "protInfo.xml", "Ciphertexts01.bt", "outputNode01");
+            // File outputNode01Orig = new File(proofsDir, "outputNode01");
+            // logsDir.mkdirs();
+            // File outputNode01Dest = new File(logsDir, "outputNode01");
+            // java.nio.file.Files.copy(outputNode01Orig.toPath(), outputNode01Dest.toPath(),
+            //                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-            run(nizkpDir, "vmnc", "-plain", "-outi", "native",
-                    "protInfo.xml", "Plaintexts.bt", "plaintexts");
-            File plaintextsNativeOrig = new File(nizkpDir, "plaintexts");
-            logsDir.mkdirs();
-            File plaintextsNativeDest = new File(logsDir, "plaintexts");
-            java.nio.file.Files.copy(plaintextsNativeOrig.toPath(), plaintextsNativeDest.toPath(),
-                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            // run(proofsDir, "vmnc", "-ciphs", "-outi", "native",
+            //         "protInfo.xml", "Ciphertexts02.bt", "outputNode02");
+            // File outputNode02Orig = new File(proofsDir, "outputNode02");
+            // logsDir.mkdirs();
+            // File outputNode02Dest = new File(logsDir, "outputNode02");
+            // java.nio.file.Files.copy(outputNode02Orig.toPath(), outputNode02Dest.toPath(),
+            //                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-            run(proofsDir, "vmnc", "-ciphs", "-outi", "native",
-                    "protInfo.xml", "Ciphertexts01.bt", "outputNode01");
-            File outputNode01Orig = new File(proofsDir, "outputNode01");
-            logsDir.mkdirs();
-            File outputNode01Dest = new File(logsDir, "outputNode01");
-            java.nio.file.Files.copy(outputNode01Orig.toPath(), outputNode01Dest.toPath(),
-                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-
-            run(proofsDir, "vmnc", "-ciphs", "-outi", "native",
-                    "protInfo.xml", "Ciphertexts02.bt", "outputNode02");
-            File outputNode02Orig = new File(proofsDir, "outputNode02");
-            logsDir.mkdirs();
-            File outputNode02Dest = new File(logsDir, "outputNode02");
-            java.nio.file.Files.copy(outputNode02Orig.toPath(), outputNode02Dest.toPath(),
-                                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            return Map.of("status", "Mixing complete");
+            return Map.of("status", "Mixing complete for party " + party);
         } catch (Exception e) {
             e.printStackTrace();
             return Map.of("error", e.getMessage());
         }
     }
 
-    @PostMapping("/verify")
-    public Map<String, String> verify(){
+    // Verify now also works per party sequentially
+    @PostMapping("/verify/{party}")
+    public Map<String, String> verify(@PathVariable("party") int party) {
         try {
-            ExecutorService executor = Executors.newFixedThreadPool(NUM_SERVERS);
-            List<Future<?>> futures = new ArrayList<>();
+            if (party < 1 || party > NUM_SERVERS)
+                return Map.of("error", "Invalid party index");
 
-            for (int i = 1; i <= NUM_SERVERS; i++) {
-                final int index = i;
-                Thread.sleep(1000);
-                futures.add(executor.submit(() -> {
-                    File dir = new File(BASE_DIR + "/0" + index);
-                    try {
-                        run(dir, "vmnv", "-mix", "protInfo.xml", "dir/nizkp/default");
-                    } catch (IOException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                }));
-            }
+            File dir = new File(BASE_DIR + "/0" + party);
+            run(dir, "vmnv", "-mix", "protInfo.xml", "dir/nizkp/default");
 
-            for (Future<?> future : futures) {
-                future.get(); // Wait for each mix-server to finish
-            }
-
-            executor.shutdown();
-            return Map.of("status", "Successful verification");
+            return Map.of("status", "Verification complete for party " + party);
         } catch (Exception e) {
             e.printStackTrace();
             return Map.of("error", e.getMessage());
@@ -280,7 +221,7 @@ public class VerificatumController {
             throw new RuntimeException("Command failed: " + String.join(" ", command));
         }
     }
-    
+
     private static void deleteRecursive(File file) {
         if (file.isDirectory()) {
             File[] files = file.listFiles();
@@ -292,5 +233,4 @@ public class VerificatumController {
         }
         file.delete();
     }
-
 }
