@@ -1,0 +1,40 @@
+#!/bin/sh
+
+# Assume que ciphertexts_ext já existe e só quer converter + copiar
+
+. ./checkvmn
+. ./conf
+
+phasestart "Convert ciphertexts_ext → ciphertexts"
+
+if test "x${1}" = "x";
+then
+    if test "x$FORCED_WIDTH" = "x"
+    then
+        widthcom WIDTHCOM $WIDTH
+    else
+        widthcom WIDTHCOM $FORCED_WIDTH
+    fi
+else
+    widthcom WIDTHCOM ${1}
+fi
+
+printf "
+vmnc -ciphs -sloppy -ini $INTER $WIDTHCOM ciphertexts_ext ciphertexts
+printf \$? > exitcode
+" > $TMP_COMMAND
+cpevalat $TMP_COMMAND 1
+
+checkexit 1
+
+phaseend
+phasestart "Copy ciphertexts to other parties"
+
+for i in `seq 2 $NO_MIXSERVERS`
+do
+    copyfromto ciphertexts 1 $i
+done
+
+wait
+
+phaseend
