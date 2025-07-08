@@ -11,9 +11,7 @@ target/
 *.xml
 *.txt
 /verificatum-demo/*
-<<<<<<< HEAD
-*.pyc
-=======
 /shuffler-demo/*
 /verificatum-guardian/*
->>>>>>> cli-http
+*.pyc
+*/.venv/*
