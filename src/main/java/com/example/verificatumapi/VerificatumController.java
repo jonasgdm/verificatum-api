@@ -18,6 +18,12 @@ public class VerificatumController {
     @PostMapping("/setup")
     public Map<String, String> setup() {
         try {
+<<<<<<< HEAD
+=======
+            killHintPorts();
+
+            // Clean the entire base directory (except the base itself)
+>>>>>>> cli-http
             File baseDir = new File(BASE_DIR);
             if (baseDir.exists()) {
                 for (File f : baseDir.listFiles()) {
@@ -233,4 +239,28 @@ public class VerificatumController {
         }
         file.delete();
     }
+<<<<<<< HEAD
 }
+=======
+
+    private void killHintPorts() {
+    int[] ports = {4041, 4042, 4043};
+    for (int port : ports) {
+        try {
+            Process p = new ProcessBuilder("bash", "-c", "lsof -t -i :" + port)
+                    .redirectErrorStream(true).start();
+            p.waitFor();
+            try (var reader = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    Runtime.getRuntime().exec("kill -9 " + line);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to kill process on port " + port + ": " + e.getMessage());
+        }
+    }
+}
+
+}
+>>>>>>> cli-http
