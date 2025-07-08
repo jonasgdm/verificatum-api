@@ -12,6 +12,8 @@ from services.verificatum_api import post_setup
 
 from utils.protinfo_parser import parse_protinfo
 
+from screens import keygen
+
 console = Console()
 
 SERVICES = {
@@ -76,7 +78,7 @@ def show():
             )
             console.print(Panel(bloco, title="Configuração do Protocolo"))
             input("[Continuar]")
-            return True
+            return keygen.show()
         else:
             console.print("\n[bold red]Erro ao executar o setup.[/bold red]\n")
             return False

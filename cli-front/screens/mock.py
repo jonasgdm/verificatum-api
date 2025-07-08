@@ -12,6 +12,7 @@ import json
 from services.MockElection import MockElection
 from utils.protinfo_parser import load_file
 
+from services import flask_api
 
 # from services.mock_vote_service import (
 #     generate_mock_votes,
@@ -84,6 +85,7 @@ def show():
         spinner = Spinner("dots", text="Gerando votos simulados...")
         with Live(spinner, refresh_per_second=10, transient=True):
             # chave = load_file("logs/publicKey")
+            # with open("../verificatum-demo/01/publicKey", "rb") as f:
             with open("../verificatum-demo/01/publicKey", "rb") as f:
                 key_bytes = f.read()
                 key = json.dumps(list(key_bytes))
@@ -94,8 +96,8 @@ def show():
         console.print(
             "\n[bold green]✓ Lista de AnyVotes disponível em output/ ![/bold green]"
         )
-        input("[Continuar]")
-        return True
+        input("[ENVIAR PARA SERVIDOR FLASK]")
+        return flask_api.post_gavt("output/gavt.json")
     else:
         console.print("[italic]Operação cancelada.[/italic]")
         return False

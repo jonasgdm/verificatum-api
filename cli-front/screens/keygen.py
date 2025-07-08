@@ -8,6 +8,8 @@ import questionary
 from services.verificatum_api import post_keygen
 from utils.protinfo_parser import load_file
 
+from screens import mock
+
 console = Console()
 
 
@@ -32,7 +34,7 @@ def show():
             chave = load_file("logs/publicKey")
             console.print(Panel(chave.strip(), title="Chave Pública da Eleição"))
             input("[Continuar]")
-            return True
+            return mock.show()
 
         except FileNotFoundError:
             console.print(

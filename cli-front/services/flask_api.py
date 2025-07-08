@@ -12,7 +12,7 @@ def _post(endpoint, file_path):
     try:
         with open(file_path, "rb") as f:
             files = {"file": (file_path, f)}
-            print(files)
+
             response = requests.post(url, files=files)
             response.raise_for_status()
             return response.json()
