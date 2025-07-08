@@ -9,6 +9,12 @@ routes_bp.add_url_rule(
 )
 
 routes_bp.add_url_rule("/api/GAVT", view_func=GAVTController.as_view("GAVT"))
+routes_bp.add_url_rule(
+    "/api/processGAVT", view_func=ProcessGAVTController.as_view("processGAVT")
+)
+
+# routes_bp.add_url_rule("/api/ciphertexts", view_func=GAVTController.as_view("GAVT"))
+
 
 # ------------------------------------------------------------------------------
 

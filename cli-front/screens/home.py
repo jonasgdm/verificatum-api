@@ -2,22 +2,13 @@ from rich import print
 from rich.panel import Panel
 from rich.align import Align
 from rich.console import Console
-
 import questionary
-from questionary import Style
 
-import sys
+from screens import setup, keygen, mock, mix, mix_demo
+
+from sys import exit
 
 console = Console()
-
-custom_style = Style(
-    [
-        (
-            "highlighted",
-            "fg:#000000 bg:#00ff00",
-        ),  # Cor do item sob a seta ← destaque real
-    ]
-)
 
 
 def show():
@@ -39,18 +30,26 @@ def show():
 
     escolha = questionary.select(
         "Escolha uma opção para continuar:",
-        choices=["[Iniciar]", "[Sobre]", "[Sair]"],
-        style=custom_style,
+        choices=[
+            "1. [SETUP]",
+            "2. [KEYGEN]",
+            "3. [MOCKAGEM DE VOTOS]",
+            "4. [MIXING]",
+            "5. [SOBRE]",
+            "0. [SAIR]",
+        ],
     ).ask()
 
-    if escolha == "[Iniciar]":
-        return True
-    elif escolha == "[Sobre]":
-        console.print(
-            "\n[italic]Sistema experimental baseado em tokens, mixnets e criptografia homomórfica.[/italic]"
-        )
-        input("\nPressione Enter para voltar.")
-        return show()
-    else:
+    if escolha == "1. [SETUP]":
+        return setup.show()
+    elif escolha == "2. [KEYGEN]":
+        return keygen.show()
+    elif escolha == "3. [MOCKAGEM DE VOTOS]":
+        return mock.show()
+    elif escolha == "4. [MIXING]":
+        return mix.show()
+    elif escolha == "5. [SOBRE]":
+        pass
+    elif escolha == "0. [SAIR]":
         console.print("[red]Encerrando...[/red]")
-        sys.exit()
+        exit()

@@ -6,6 +6,17 @@ import time
 import string
 import random
 import hashlib
+import os, json, hmac, hashlib
+from collections import defaultdict
+
+GAVT_FILE = "./uploads/output/gavt.json"
+OUTPUT_DIR = "./output"
+
+
+def prf(seed: str, data: str) -> int:
+    return int.from_bytes(
+        hmac.new(seed.encode(), data.encode(), hashlib.sha256).digest(), "big"
+    )
 
 
 class PublicKeyController(MethodView):
@@ -13,15 +24,66 @@ class PublicKeyController(MethodView):
         return jsonify(VerificatumApiService.get_key())
 
 
+class ProcessGAVTController(MethodView):
+    def get(self):
+
+        seed_duplicate = "seed_contribuida_por_observadores"
+
+        try:
+            print(">>", GAVT_FILE)
+            with open(GAVT_FILE, "r", encoding="utf-8") as f:
+                anyvotes = json.load(f)
+        except Exception as e:
+            print(f"[ERRO] Falha ao ler o arquivo GAVT: {e}")
+            return "", 204
+
+        grouped = defaultdict(list)
+        for vote in anyvotes:
+            grouped[vote["tokenID"]].append(vote)
+
+        duplicates = {k: v for k, v in grouped.items() if len(v) > 1}
+        cargos_removidos = defaultdict(list)
+
+        for tokenID, votos in duplicates.items():
+            if len(votos) != 2:
+                continue  # tratamento só para pares por enquanto
+
+            v1, v2 = votos
+            r1 = prf(seed_duplicate, json.dumps(v1, sort_keys=True))
+            r2 = prf(seed_duplicate, json.dumps(v2, sort_keys=True))
+
+            _, removed = (v1, v2) if r1 > r2 else (v2, v1)
+
+            for i, ciphertext in enumerate(removed["encryptedVotes"]):
+                cargos_removidos[i].append(ciphertext)
+
+        for idx, ciphertexts in cargos_removidos.items():
+            path = os.path.join(OUTPUT_DIR, f"DuplicateVotesTable_{idx}")
+            with open(path, "w", encoding="utf-8") as f:
+                for c in ciphertexts:
+                    f.write(c + "\n")
+
+        print(
+            f"[OK] Processamento finalizado. {len(duplicates)} tokens duplicados tratados."
+        )
+        return (
+            jsonify({"status": "processed"}),
+            204,
+        )  # sem resposta, só efeito colateral nos arquivos
+
+
 class GAVTController(MethodView):
     def post(self):
-        gavt = request.get_json()
+        if "file" not in request.files:
+            return jsonify({"erro": "Arquivo não enviado"}), 400
+        file = request.files["file"]
+        file.save(f"./uploads/{file.filename}")
+        return jsonify({"mensagem": "Arquivo recebido com sucesso"}), 200
 
-        if not isinstance(gavt, list):
-            return jsonify({"error": "Esperado lista de votos"}), 400
-        result = process_gavt(gavt)
 
-        return jsonify({"message": "Duplicatas processadas e salvas", **result}), 200
+class ParseController(MethodView):
+    def post(self):
+        pass
 
 
 class Cypher01Controller(MethodView):
