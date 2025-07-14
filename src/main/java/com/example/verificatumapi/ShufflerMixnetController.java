@@ -1,6 +1,8 @@
 package com.example.verificatumapi;
 
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
