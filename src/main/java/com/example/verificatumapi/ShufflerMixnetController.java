@@ -84,21 +84,23 @@ public class ShufflerMixnetController {
     }
 
     @PostMapping("/receive-ciphertexts")
-    public Map<String, String> receiveCiphertexts(@RequestBody byte[] ciphertexts) {
+    public Map<String, String> receiveCiphertexts(@RequestParam("file") MultipartFile file) {
         try {
             File target = new File(BASE_DIR + "/01/ciphertexts");
-            Files.write(target.toPath(), ciphertexts);
+            file.transferTo(target);
+    
             for (int i = 2; i <= NUM_SERVERS; i++) {
                 Files.copy(target.toPath(),
                         new File(BASE_DIR + "/0" + i + "/ciphertexts").toPath(),
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
+    
             return Map.of("status", "Ciphertexts received and copied");
         } catch (IOException e) {
             e.printStackTrace();
             return Map.of("error", "Failed to save ciphertexts: " + e.getMessage());
         }
-    }
+    }    
 
     @PostMapping("/shuffle")
     public Map<String, String> shuffle() {

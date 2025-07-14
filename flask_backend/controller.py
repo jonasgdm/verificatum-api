@@ -5,6 +5,7 @@ from services.vote_processing_services import process_gavt
 import time
 import string
 import random
+import requests
 import hashlib
 import os, json, hmac, hashlib
 from collections import defaultdict
@@ -17,6 +18,38 @@ def prf(seed: str, data: str) -> int:
     return int.from_bytes(
         hmac.new(seed.encode(), data.encode(), hashlib.sha256).digest(), "big"
     )
+
+
+class ShuffleController(MethodView):
+    def post(self, index):
+        file_path = f"./output/DuplicateVotesTable_{index}"
+
+        if not os.path.exists(file_path):
+            return jsonify({"error": f"Arquivo {file_path} não encontrado"}), 404
+
+        try:
+            with open(file_path, "rb") as f:
+                response = requests.post(
+                    "http://localhost:8080/shuffler/receive-ciphertexts",
+                    files={"file": (f"DuplicateVotesTable_{index}", f, "text/plain")},
+                )
+
+            if response.ok:
+                return jsonify(response.json()), 200
+            else:
+                return (
+                    jsonify(
+                        {
+                            "error": "Erro no Verificatum",
+                            "status_code": response.status_code,
+                            "body": response.text,
+                        }
+                    ),
+                    500,
+                )
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
 
 class PublicKeyController(MethodView):
