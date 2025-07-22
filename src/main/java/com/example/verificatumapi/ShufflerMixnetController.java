@@ -14,7 +14,7 @@ import java.util.concurrent.*;
 public class ShufflerMixnetController {
 
     private static final int NUM_SERVERS = 3;
-    private static final String BASE_DIR = "shuffler-demo";
+    private static final String BASE_DIR = System.getProperty("user.dir") + "/shuffler-demo";
     private static final String SESSION_ID = "ShuffleSession";
     private static final String ELECTION_NAME = "ShufflerNet";
 
