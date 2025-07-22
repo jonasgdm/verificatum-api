@@ -117,7 +117,6 @@ public Map<String, String> receiveCiphertexts(@RequestParam("file") MultipartFil
     }
 }
 
-
     @PostMapping("/shuffle")
     public Map<String, String> shuffle() {
         try {
@@ -130,9 +129,14 @@ public Map<String, String> receiveCiphertexts(@RequestParam("file") MultipartFil
                 futures.add(executor.submit(() -> {
                     File dir = new File(BASE_DIR + "/0" + idx);
                     try {
-                        MixnetCommon.run(dir, "vmn", "-shuffle", "privInfo.xml", "protInfo.xml", "ciphertexts", "shuffled");
+                        // Step 1: Convert ciphertexts to raw format (if necessary)
+                        MixnetCommon.run(dir, "vmnc", "-ciphs", "-ini", "native",
+                                "protInfo.xml", "../ciphertexts", "ciphertexts.raw");
+
+                        // Step 2: Shuffle using the raw ciphertexts
+                        MixnetCommon.run(dir, "vmn", "-shuffle",
+                                "privInfo.xml", "protInfo.xml", "ciphertexts.raw", "shuffled");
                     } catch (IOException | InterruptedException e) {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
                 }));
@@ -141,7 +145,7 @@ public Map<String, String> receiveCiphertexts(@RequestParam("file") MultipartFil
             for (Future<?> f : futures) f.get();
             executor.shutdown();
 
-            // Copy shuffled to all guardian nodes
+            // Copy shuffled output to guardian nodes
             File shuffledFile = new File(BASE_DIR + "/01/shuffled");
             for (int i = 1; i <= NUM_SERVERS; i++) {
                 File dest = new File("verificatum-guardian/0" + i + "/shuffled-ciphertexts");
