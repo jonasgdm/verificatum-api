@@ -18,12 +18,9 @@ public class VerificatumController {
     @PostMapping("/setup")
     public Map<String, String> setup() {
         try {
-<<<<<<< HEAD
-=======
             killHintPorts();
 
             // Clean the entire base directory (except the base itself)
->>>>>>> cli-http
             File baseDir = new File(BASE_DIR);
             if (baseDir.exists()) {
                 for (File f : baseDir.listFiles()) {
@@ -239,9 +236,6 @@ public class VerificatumController {
         }
         file.delete();
     }
-<<<<<<< HEAD
-}
-=======
 
     private void killHintPorts() {
     int[] ports = {4041, 4042, 4043};
@@ -263,4 +257,3 @@ public class VerificatumController {
 }
 
 }
->>>>>>> cli-http
