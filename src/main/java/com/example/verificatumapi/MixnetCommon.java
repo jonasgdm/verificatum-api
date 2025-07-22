@@ -129,7 +129,7 @@ public class MixnetCommon {
         try {
             ExecutorService executor = Executors.newFixedThreadPool(numServers);
             List<Future<?>> futures = new ArrayList<>();
-
+    
             for (int i = 1; i <= numServers; i++) {
                 final int index = i;
                 Thread.sleep(1000);
@@ -138,25 +138,33 @@ public class MixnetCommon {
                     try {
                         run(dir, "vmn", "-decrypt", "shuffled-ciphertexts", "plaintexts");
                     } catch (IOException | InterruptedException e) {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
                 }));
             }
-
+    
             for (Future<?> f : futures) f.get();
             executor.shutdown();
-
-            File src = new File(baseDir + "/01/plaintexts");
-            File dest = new File(baseDir + "/logs/plaintexts");
-            Files.copy(src.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-
-            return Map.of("status", "Decryption complete");
+    
+            File dir01 = new File(baseDir + "/01");
+            File logs = new File(baseDir + "/logs");
+            logs.mkdirs();
+    
+            // Step: Convert plaintexts to native format
+            run(dir01, "vmnc", "-plain", "-outi", "native",
+                    "protInfo.xml", "plaintexts", "plaintexts.native");
+    
+            // Save to logs
+            Files.copy(new File(dir01, "plaintexts.native").toPath(),
+                    new File(logs, "plaintexts.native").toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+    
+            return Map.of("status", "Decryption and conversion complete");
         } catch (Exception e) {
             e.printStackTrace();
             return Map.of("error", e.getMessage());
         }
-    }
+    }    
 
     public static void cleanAndPrepareBase(String basePath, int numServers) throws IOException {
         File baseDir = new File(basePath);
