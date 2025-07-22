@@ -131,7 +131,7 @@ public Map<String, String> receiveCiphertexts(@RequestParam("file") MultipartFil
                     try {
                         // Step 1: Convert ciphertexts to raw format (if necessary)
                         MixnetCommon.run(dir, "vmnc", "-ciphs", "-ini", "native",
-                                "protInfo.xml", "../ciphertexts", "ciphertextsRaw");
+                                "protInfo.xml", "ciphertexts", "ciphertextsRaw");
 
                         // Step 2: Shuffle using the raw ciphertexts
                         MixnetCommon.run(dir, "vmn", "-shuffle",
