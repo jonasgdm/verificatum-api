@@ -131,11 +131,11 @@ public Map<String, String> receiveCiphertexts(@RequestParam("file") MultipartFil
                     try {
                         // Step 1: Convert ciphertexts to raw format (if necessary)
                         MixnetCommon.run(dir, "vmnc", "-ciphs", "-ini", "native",
-                                "protInfo.xml", "../ciphertexts", "ciphertexts.raw");
+                                "protInfo.xml", "../ciphertexts", "ciphertextsRaw");
 
                         // Step 2: Shuffle using the raw ciphertexts
                         MixnetCommon.run(dir, "vmn", "-shuffle",
-                                "privInfo.xml", "protInfo.xml", "ciphertexts.raw", "shuffled");
+                                "privInfo.xml", "protInfo.xml", "ciphertextsRaw", "shuffled");
                     } catch (IOException | InterruptedException e) {
                         e.printStackTrace();
                     }
