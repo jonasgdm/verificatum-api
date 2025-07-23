@@ -39,9 +39,17 @@ public class MixnetCommon {
         }
     }
 
+    public static void killAllHintPorts(int startPort, int endPort) {
+        List<Integer> ports = new ArrayList<>();
+        for (int p = startPort; p <= endPort; p++) {
+            ports.add(p);
+        }
+        killHintPorts(ports);
+    }
+
     public static Map<String, String> setupMixnet(String baseDir, String sessionId, String electionName, int numServers) {
         try {
-            killHintPorts(Arrays.asList(4041, 4042, 4043));
+            killAllHintPorts(4040, 4060);
             cleanAndPrepareBase(baseDir, numServers);
 
             for (int i = 1; i <= numServers; i++) {
