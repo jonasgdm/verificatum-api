@@ -9,6 +9,9 @@ from rich.live import Live
 from utils.electionConfig_parser import load_election_config
 from services.flask_api import _post
 from services import verificatum_api
+from requests_toolbelt.multipart import decoder
+from rich.table import Table
+from collections import Counter
 
 console = Console()
 TALLY_PATH = "output/tally.json"
@@ -116,33 +119,56 @@ def show():
         if decrypt_resp is None:
             return None
 
+        multipart_data = decoder.MultipartDecoder.from_response(decrypt_resp)
+        part = multipart_data.parts[0]  # assume que é 1 arquivo
         path = os.path.join("decrypted", f"decrypted_{index}.native")
         with open(path, "wb") as f:
-            f.write(decrypt_resp.content)
+            f.write(part.content)  # conteúdo limpo, sem headers
 
         console.print(f"[✓] Decrypt salvo em: {path}")
-        return path
         input(">..")
-        # 4. Mostrar comparação com tally
+
+        # 1. Ler os votos do arquivo .native (já feito)
+        with open(path, "r", encoding="utf-8") as f:
+            decrypted_votes = [linha.strip() for linha in f if linha.strip()]
+
+        # 2. Processar tally original e novo
+        votos_originais = tally.get(cargo, {})
+        tally_original = {str(k): int(v) for k, v in votos_originais.items()}
+        tally_decrypt = Counter(decrypted_votes)
+
+        # 3. Preparar tabela comparativa
+        table = Table(title=f"Tally Comparativo - {cargo}", show_lines=True)
+        table.add_column("Candidato", justify="center")
+        table.add_column("Original", justify="center")
+        table.add_column("Descartados", justify="center")
+        table.add_column("Válidos", justify="center")
+
+        todos_candidatos = set(tally_original.keys()).union(tally_decrypt.keys())
+
+        for candidato in sorted(todos_candidatos):
+            orig = tally_original.get(candidato, 0)
+            novo = tally_decrypt.get(candidato, 0)
+            diff = orig - novo
+            table.add_row(candidato, str(orig), str(novo), str(diff))
+
+        # 4. Totais
+        total_original = sum(tally_original.values())
+        total_decrypt = sum(tally_decrypt.values())
+        total_descartados = total_original - total_decrypt
+
+        # 5. Exibir
         console.clear()
         console.print(
             f"[bold cyan]📥 Resultado após shuffle e decrypt: {cargo}[/bold cyan]\n"
         )
-
-        votos_originais = tally.get(cargo, {})
-        total_inicial = sum(votos_originais.values())
-        total_final = len(decrypted_votes)
-
-        console.print(f"[bold]Tally original:[/bold]")
-        for candidato, votos in votos_originais.items():
-            console.print(f" - {candidato}: {votos} voto(s)")
-
-        console.print(f"\n[bold]Removidos:[/bold] {total_inicial - total_final} votos")
-        console.print(
-            f"[bold green]Total final:[/bold green] {total_final} voto(s) válidos\n"
-        )
+        console.print(table)
+        console.print(f"\n[bold]Total original:[/bold] {total_original}")
+        console.print(f"[bold]Descartados:[/bold] {total_decrypt}")
+        console.print(f"[bold red]Válidos:[/bold red] {total_descartados}\n")
 
         status[index] = True
+        input("[CONTINUAR]")
 
         if all(status):
             cont = questionary.confirm(

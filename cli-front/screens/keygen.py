@@ -10,7 +10,7 @@ from screens import mock
 from services.verificatum_api import post_keygen
 from utils.protinfo_parser import load_file
 
-from screens import mock
+from screens import mock, home
 
 from services.verificatum_api import get_publickey
 
@@ -21,12 +21,12 @@ def show():
     console.clear()
     escolha = questionary.select(
         "Deseja gerar a chave pública da eleição?",
-        choices=["🔑 Iniciar KeyGen", "↩ Voltar"],
+        choices=["Iniciar KeyGen", "↩ Voltar"],
     ).ask()
 
-    if escolha != "🔑 Iniciar KeyGen":
+    if escolha != "Iniciar KeyGen":
         console.print("[italic]Key generation cancelada.[/italic]")
-        return
+        return home.show()
 
     spinner = Spinner("dots", text="Gerando chave com /keygen...")
     with Live(spinner, refresh_per_second=10, transient=True):

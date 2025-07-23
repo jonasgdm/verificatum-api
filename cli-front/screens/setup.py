@@ -12,7 +12,7 @@ from services.verificatum_api import post_setup
 
 from utils.protinfo_parser import parse_protinfo
 
-from screens import keygen
+from screens import keygen, home
 
 console = Console()
 
@@ -84,4 +84,4 @@ def show():
             return False
     else:
         console.print("[italic]Setup cancelado.[/italic]")
-        return False
+        return home.show()

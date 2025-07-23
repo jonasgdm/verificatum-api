@@ -15,7 +15,7 @@ from utils.protinfo_parser import load_file
 from services import flask_api
 from services.verificatum_api import get_publickey
 
-from screens import shuffle_setup
+from screens import shuffle_setup, home
 
 # from services.mock_vote_service import (
 #     generate_mock_votes,
@@ -112,4 +112,4 @@ def show():
             continue
         else:
             console.print("[italic]Operação cancelada.[/italic]")
-            return False
+            return home.show()
