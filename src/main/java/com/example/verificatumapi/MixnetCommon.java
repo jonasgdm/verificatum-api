@@ -125,7 +125,8 @@ public class MixnetCommon {
         }
     }
 
-    public static Map<String, String> decrypt(String baseDir, int numServers) {
+    @PostMapping(value = "/decrypt", produces = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MultiValueMap<String, Object>> decrypt() {
         try {
             ExecutorService executor = Executors.newFixedThreadPool(numServers);
             List<Future<?>> futures = new ArrayList<>();
@@ -136,9 +137,9 @@ public class MixnetCommon {
                 futures.add(executor.submit(() -> {
                     File dir = new File(baseDir + "/0" + index);
                     try {
-                        run(dir, "vmn", "-decrypt", "shuffled-ciphertexts", "plaintexts");
-                    } catch (IOException | InterruptedException e) {
-                        e.printStackTrace();
+                        MixnetCommon.run(dir, "vmn", "-decrypt", "shuffled-ciphertexts", "plaintexts");
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
                     }
                 }));
             }
@@ -150,21 +151,28 @@ public class MixnetCommon {
             File logs = new File(baseDir + "/logs");
             logs.mkdirs();
     
-            // Step: Convert plaintexts to native format
-            run(dir01, "vmnc", "-plain", "-outi", "native",
+            // Convert plaintexts to native format
+            MixnetCommon.run(dir01, "vmnc", "-plain", "-outi", "native",
                     "protInfo.xml", "plaintexts", "plaintexts.native");
     
-            // Save to logs
-            Files.copy(new File(dir01, "plaintexts.native").toPath(),
-                    new File(logs, "plaintexts.native").toPath(),
-                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            File nativeFile = new File(dir01, "plaintexts.native");
+            Files.copy(nativeFile.toPath(), new File(logs, "plaintexts.native").toPath(),
+                    StandardCopyOption.REPLACE_EXISTING);
     
-            return Map.of("status", "Decryption and conversion complete");
+            // Prepare multipart response
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", new FileSystemResource(nativeFile));
+    
+            return ResponseEntity.ok()
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body);
+    
         } catch (Exception e) {
             e.printStackTrace();
-            return Map.of("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);
         }
-    }    
+    }        
 
     public static void cleanAndPrepareBase(String basePath, int numServers) throws IOException {
         File baseDir = new File(basePath);
