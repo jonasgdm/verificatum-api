@@ -4,7 +4,7 @@ from rich.align import Align
 from rich.console import Console
 import questionary
 
-from screens import setup, keygen, mock, mix, mix_demo
+from screens import setup, keygen, mock, mix_demo, shuffle, shuffle_setup
 
 from sys import exit
 
@@ -34,8 +34,9 @@ def show():
             "1. [SETUP]",
             "2. [KEYGEN]",
             "3. [MOCKAGEM DE VOTOS]",
-            "4. [MIXING]",
-            "5. [SOBRE]",
+            "4. [SHUFFLE SETUP]",
+            "5. [MIXING]",
+            "6. [SOBRE]",
             "0. [SAIR]",
         ],
     ).ask()
@@ -46,9 +47,11 @@ def show():
         return keygen.show()
     elif escolha == "3. [MOCKAGEM DE VOTOS]":
         return mock.show()
-    elif escolha == "4. [MIXING]":
-        return mix.show()
-    elif escolha == "5. [SOBRE]":
+    elif escolha == "4. [SHUFFLE SETUP]":
+        return shuffle_setup.show()
+    elif escolha == "5. [MIXING]":
+        return shuffle.show()
+    elif escolha == "6. [SOBRE]":
         pass
     elif escolha == "0. [SAIR]":
         console.print("[red]Encerrando...[/red]")

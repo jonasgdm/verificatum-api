@@ -156,3 +156,9 @@ class MockElection:
                     )
         else:
             raise ValueError("Formato inválido: use 'json' ou 'csv'.")
+
+    def export_tally(self):
+        os.makedirs("output", exist_ok=True)
+        path = os.path.join("output", "tally.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(self.tally, f, ensure_ascii=False, indent=2)

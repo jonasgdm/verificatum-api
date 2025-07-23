@@ -34,6 +34,8 @@ class ShuffleController(MethodView):
                     files={"file": (f"DuplicateVotesTable_{index}", f, "text/plain")},
                 )
 
+                print(">>>", response)
+
             if response.ok:
                 return jsonify(response.json()), 200
             else:
@@ -58,12 +60,12 @@ class PublicKeyController(MethodView):
 
 
 class ProcessGAVTController(MethodView):
-    def get(self):
+    def post(self):
 
         seed_duplicate = "seed_contribuida_por_observadores"
 
         try:
-            print(">>", GAVT_FILE)
+
             with open(GAVT_FILE, "r", encoding="utf-8") as f:
                 anyvotes = json.load(f)
         except Exception as e:
@@ -96,12 +98,9 @@ class ProcessGAVTController(MethodView):
                 for c in ciphertexts:
                     f.write(c + "\n")
 
-        print(
-            f"[OK] Processamento finalizado. {len(duplicates)} tokens duplicados tratados."
-        )
         return (
-            jsonify({"status": "processed"}),
-            204,
+            jsonify({"status": "processed", "tokens": len(duplicates)}),
+            200,
         )  # sem resposta, só efeito colateral nos arquivos
 
 

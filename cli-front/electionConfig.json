@@ -1,11 +1,11 @@
 {
     "type": "Municipal",
-    "anyVotes": 10,
-    "doubleVotes": 3,
+    "anyVotes": 5,
+    "doubleVotes": 1,
     "numberBallots": 1,
     "blankVotes": 0,
     "nullVotes": 0,
-    "conventionalVotes": 10,
+    "conventionalVotes": 0,
     "options": [
         {
             "contest": "vereador",
@@ -19,22 +19,22 @@
         },
         {
             "contest": "deputado_estadual",
-            "candidates": 2,
+            "candidates": 0,
             "digits": 5
         },
         {
             "contest": "deputado_federal",
-            "candidates": 2,
+            "candidates": 0,
             "digits": 4
         },
         {
             "contest": "senador",
-            "candidates": 2,
+            "candidates": 0,
             "digits": 3
         },
         {
             "contest": "governador",
-            "candidates": 2,
+            "candidates": 0,
             "digits": 2
         },
         {
