@@ -4,6 +4,12 @@ import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.core.io.FileSystemResource;
 
 public class MixnetCommon {
 
@@ -125,54 +131,53 @@ public class MixnetCommon {
         }
     }
 
-    @PostMapping(value = "/decrypt", produces = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<MultiValueMap<String, Object>> decrypt() {
-        try {
-            ExecutorService executor = Executors.newFixedThreadPool(numServers);
-            List<Future<?>> futures = new ArrayList<>();
+    // public ResponseEntity<MultiValueMap<String, Object>> decrypt() {
+    //     try {
+    //         ExecutorService executor = Executors.newFixedThreadPool(numServers);
+    //         List<Future<?>> futures = new ArrayList<>();
     
-            for (int i = 1; i <= numServers; i++) {
-                final int index = i;
-                Thread.sleep(1000);
-                futures.add(executor.submit(() -> {
-                    File dir = new File(baseDir + "/0" + index);
-                    try {
-                        MixnetCommon.run(dir, "vmn", "-decrypt", "shuffled-ciphertexts", "plaintexts");
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }));
-            }
+    //         for (int i = 1; i <= numServers; i++) {
+    //             final int index = i;
+    //             Thread.sleep(1000);
+    //             futures.add(executor.submit(() -> {
+    //                 File dir = new File(baseDir + "/0" + index);
+    //                 try {
+    //                     MixnetCommon.run(dir, "vmn", "-decrypt", "shuffled-ciphertexts", "plaintexts");
+    //                 } catch (Exception e) {
+    //                     throw new RuntimeException(e);
+    //                 }
+    //             }));
+    //         }
     
-            for (Future<?> f : futures) f.get();
-            executor.shutdown();
+    //         for (Future<?> f : futures) f.get();
+    //         executor.shutdown();
     
-            File dir01 = new File(baseDir + "/01");
-            File logs = new File(baseDir + "/logs");
-            logs.mkdirs();
+    //         File dir01 = new File(baseDir + "/01");
+    //         File logs = new File(baseDir + "/logs");
+    //         logs.mkdirs();
     
-            // Convert plaintexts to native format
-            MixnetCommon.run(dir01, "vmnc", "-plain", "-outi", "native",
-                    "protInfo.xml", "plaintexts", "plaintexts.native");
+    //         // Convert plaintexts to native format
+    //         MixnetCommon.run(dir01, "vmnc", "-plain", "-outi", "native",
+    //                 "protInfo.xml", "plaintexts", "plaintexts.native");
     
-            File nativeFile = new File(dir01, "plaintexts.native");
-            Files.copy(nativeFile.toPath(), new File(logs, "plaintexts.native").toPath(),
-                    StandardCopyOption.REPLACE_EXISTING);
+    //         File nativeFile = new File(dir01, "plaintexts.native");
+    //         Files.copy(nativeFile.toPath(), new File(logs, "plaintexts.native").toPath(),
+    //                 StandardCopyOption.REPLACE_EXISTING);
     
-            // Prepare multipart response
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("file", new FileSystemResource(nativeFile));
+    //         // Prepare multipart response
+    //         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+    //         body.add("file", new FileSystemResource(nativeFile));
     
-            return ResponseEntity.ok()
-                    .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(body);
+    //         return ResponseEntity.ok()
+    //                 .contentType(MediaType.MULTIPART_FORM_DATA)
+    //                 .body(body);
     
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(null);
-        }
-    }        
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    //                 .body(null);
+    //     }
+    // }        
 
     public static void cleanAndPrepareBase(String basePath, int numServers) throws IOException {
         File baseDir = new File(basePath);
