@@ -3,13 +3,6 @@ package com.example.verificatumapi;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.core.io.FileSystemResource;
-
 import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
