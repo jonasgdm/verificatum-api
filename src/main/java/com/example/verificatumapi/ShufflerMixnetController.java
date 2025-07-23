@@ -151,6 +151,7 @@ public Map<String, String> receiveCiphertexts(@RequestParam("file") MultipartFil
                 File dest = new File("verificatum-guardian/0" + i + "/shuffled-ciphertexts");
                 Files.copy(shuffledFile.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
+            MixnetCommon.killAllHintPorts(4040, 4060);
 
             return Map.of("status", "Shuffle complete");
         } catch (Exception e) {

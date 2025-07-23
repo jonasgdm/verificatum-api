@@ -71,6 +71,8 @@ public class GuardianMixnetController {
             // Prepare multipart response
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("file", new FileSystemResource(nativeFile));
+
+            MixnetCommon.killAllHintPorts(4040, 4060);
     
             return ResponseEntity.ok()
                     .contentType(MediaType.MULTIPART_FORM_DATA)
