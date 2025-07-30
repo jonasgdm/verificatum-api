@@ -14,6 +14,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.core.io.FileSystemResource;
 import java.nio.file.StandardCopyOption;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.web.bind.annotation.GetMapping;
 
 @RestController
 @RequestMapping("/guardian")
@@ -88,5 +91,24 @@ public class GuardianMixnetController {
     public byte[] getPublicKey() throws IOException {
         File key = new File(BASE_DIR + "/logs/publicKey");
         return Files.readAllBytes(key.toPath());
+    }
+
+    @GetMapping(value = "/prot-info", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<Resource> getProtInfo() {
+        try {
+            File file = new File(BASE_DIR + "/01/protInfo.xml");
+            if (!file.exists()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            Resource resource = new FileSystemResource(file);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"protInfo.xml\"")
+                    .contentLength(file.length())
+                    .body(resource);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }
