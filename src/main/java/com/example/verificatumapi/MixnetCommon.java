@@ -2,6 +2,7 @@ package com.example.verificatumapi;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -130,6 +131,34 @@ public class MixnetCommon {
         } catch (Exception e) {
             e.printStackTrace();
             return Map.of("error", e.getMessage());
+        }
+    }
+
+    public static void generateUSBConfigCopies(String baseDir, int numServers) throws IOException {
+        for (int i = 1; i <= numServers; i++) {
+            String nodeDir = baseDir + "/0" + i;
+            File protFile = new File(nodeDir, "protInfo.xml");
+            File privFile = new File(nodeDir, "privInfo.xml");
+
+            File protUSB = new File(nodeDir, "protInfo-usb.xml");
+            File privUSB = new File(nodeDir, "privInfo-usb.xml");
+
+            // Copia os arquivos originais
+            Files.copy(protFile.toPath(), protUSB.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(privFile.toPath(), privUSB.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+            // Substitui o bulletin board para o USB nos arquivos copiados
+            replaceInFile(protUSB, "com.verificatum.protocol.com.BullBoardBasicHTTPW",
+                                    "com.verificatum.protocol.com.USBBulletinBoard");
+            replaceInFile(privUSB, "</privkey>", "</privkey>\n    <bbdir>usb-bb</bbdir>");
+        }
+    }
+
+    private static void replaceInFile(File file, String target, String replacement) throws IOException {
+        String content = Files.readString(file.toPath());
+        if (!content.contains(replacement)) { // evita duplicação
+            content = content.replace(target, replacement);
+            Files.writeString(file.toPath(), content);
         }
     }
 

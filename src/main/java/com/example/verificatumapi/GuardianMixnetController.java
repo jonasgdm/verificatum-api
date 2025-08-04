@@ -16,7 +16,6 @@ import org.springframework.core.io.FileSystemResource;
 import java.nio.file.StandardCopyOption;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.web.bind.annotation.GetMapping;
 
 @RestController
 @RequestMapping("/guardian")
@@ -37,55 +36,58 @@ public class GuardianMixnetController {
         return MixnetCommon.keygen(BASE_DIR, NUM_SERVERS);
     }
 
-    @PostMapping(value = "/decrypt", produces = MediaType.MULTIPART_FORM_DATA_VALUE)
+@PostMapping(value = "/decrypt", produces = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<MultiValueMap<String, Object>> decrypt() {
         try {
+            // Gera versões modificadas com USB Bulletin Board
+            MixnetCommon.generateUSBConfigCopies(BASE_DIR, NUM_SERVERS);
+
             ExecutorService executor = Executors.newFixedThreadPool(NUM_SERVERS);
             List<Future<?>> futures = new ArrayList<>();
-    
+
             for (int i = 1; i <= NUM_SERVERS; i++) {
                 final int index = i;
                 Thread.sleep(1000);
                 futures.add(executor.submit(() -> {
                     File dir = new File(BASE_DIR + "/0" + index);
                     try {
-                        MixnetCommon.run(dir, "vmn", "-decrypt", "shuffled-ciphertexts", "plaintexts");
+                        // Usa os arquivos alternativos com USB BB
+                        MixnetCommon.run(dir, "vmn", "-decrypt",
+                                "privInfo-usb.xml", "protInfo-usb.xml",
+                                "shuffled-ciphertexts", "plaintexts");
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 }));
             }
-    
+
             for (Future<?> f : futures) f.get();
             executor.shutdown();
-    
+
             File dir01 = new File(BASE_DIR + "/01");
             File logs = new File(BASE_DIR + "/logs");
             logs.mkdirs();
-    
-            // Convert plaintexts to native format
+
+            // Converte para formato nativo
             MixnetCommon.run(dir01, "vmnc", "-plain", "-outi", "native",
                     "protInfo.xml", "plaintexts", "plaintexts.native");
-    
+
             File nativeFile = new File(dir01, "plaintexts.native");
             Files.copy(nativeFile.toPath(), new File(logs, "plaintexts.native").toPath(),
                     StandardCopyOption.REPLACE_EXISTING);
-    
-            // Prepare multipart response
+
+            // Resposta multipart
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("file", new FileSystemResource(nativeFile));
 
             MixnetCommon.killAllHintPorts(4040, 4060);
-    
-            return ResponseEntity.ok()
-                    .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(body);
-    
+            return ResponseEntity.ok().contentType(MediaType.MULTIPART_FORM_DATA).body(body);
+
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
-    }    
+    }
 
     @GetMapping("/public-key")
     public byte[] getPublicKey() throws IOException {
