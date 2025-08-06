@@ -3,24 +3,28 @@ from rich.panel import Panel
 from rich.align import Align
 from rich.console import Console
 import questionary
-
-from screens import setup, keygen, mock, mix_demo, shuffle, shuffle_setup
-
 from sys import exit
+
+from screens.sim import descrp
 
 console = Console()
 
 
 def show():
-    titulo = "[bold cyan]AnyWhere Voting - Simulação[/bold cyan]"
+    titulo = "[bold cyan]AnyWhere Voting - Simulador de Processo Eleitoral[/bold cyan]"
+
     descricao = (
-        "[white]Simulação de parte de processo de votação com mobilidade; [/white]\n"
-        "\n[white]Funcionalidades: geração de votos, detecção de duplicatas e mixing.[/white]"
+        "[white]Este aplicativo simula parte do processo de votação eletrônica com mobilidade.[/white]\n\n"
+        "[white]A simulação é dividida em duas etapas principais:[/white]\n"
+        "1. [bold]Simulação de Votação[/bold] — geração de votos simulados, duplicados e convencionais.\n"
+        "2. [bold]Mixagem e Decifração[/bold] — embaralhamento criptográfico dos votos (mixnets) e sua apuração segura.\n\n"
+        "[white]O objetivo é demonstrar um fluxo simplificado e auditável de votação anônima baseado em mixnets,[/white]\n"
+        "[white]mantendo clareza e verificabilidade mesmo para especialistas que não dominam os detalhes criptográficos.[/white]"
     )
 
     painel = Panel(
         Align.center(f"{titulo}\n\n{descricao}", vertical="middle"),
-        width=70,
+        width=90,
         padding=(1, 4),
         border_style="cyan",
     )
@@ -29,30 +33,18 @@ def show():
     console.print(painel)
 
     escolha = questionary.select(
-        "Escolha uma opção para continuar:",
+        "Escolha uma etapa para iniciar:",
         choices=[
-            "1. [SETUP]",
-            "2. [KEYGEN]",
-            "3. [MOCKAGEM DE VOTOS]",
-            "4. [SHUFFLE SETUP]",
-            "5. [MIXING]",
-            "6. [SOBRE]",
-            "0. [SAIR]",
+            "1. Simular Votação",
+            "2. Mixagem e Decifração",
+            "0. Sair",
         ],
     ).ask()
 
-    if escolha == "1. [SETUP]":
-        return setup.show()
-    elif escolha == "2. [KEYGEN]":
-        return keygen.show()
-    elif escolha == "3. [MOCKAGEM DE VOTOS]":
-        return mock.show()
-    elif escolha == "4. [SHUFFLE SETUP]":
-        return shuffle_setup.show()
-    elif escolha == "5. [MIXING]":
-        return shuffle.show()
-    elif escolha == "6. [SOBRE]":
-        pass
-    elif escolha == "0. [SAIR]":
+    if escolha.startswith("1"):
+        return descrp.show()
+    elif escolha.startswith("2"):
+        return embaralhamento.show()
+    elif escolha.startswith("0"):
         console.print("[red]Encerrando...[/red]")
         exit()
