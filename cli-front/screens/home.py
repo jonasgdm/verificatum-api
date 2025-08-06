@@ -5,7 +5,8 @@ from rich.console import Console
 import questionary
 from sys import exit
 
-from screens.sim import descrp
+from screens.sim import descrp, mock, result
+from screens.mix import shuffle_setup, shuffle
 
 console = Console()
 
@@ -44,7 +45,7 @@ def show():
     if escolha.startswith("1"):
         return descrp.show()
     elif escolha.startswith("2"):
-        return embaralhamento.show()
+        return shuffle_setup.show()
     elif escolha.startswith("0"):
         console.print("[red]Encerrando...[/red]")
         exit()

@@ -7,8 +7,9 @@ import questionary
 import requests
 from utils.electionConfig_parser import load_election_config
 from services.verificatum_api import _post
+from screens.mix import shuffle
 
-from screens import home, shuffle
+# from screens import home, shuffle
 
 console = Console()
 

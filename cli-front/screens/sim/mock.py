@@ -7,41 +7,69 @@ from rich.console import Console
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.table import Table
+from rich.align import Align
+
 import questionary
 import json
 from services.MockElection import MockElection
-from utils.protinfo_parser import load_file
+
+# from utils.protinfo_parser import load_file
 
 from services import flask_api
 from services.verificatum_api import get_publickey
 
-from screens import shuffle_setup, home
+from screens.mix import shuffle_setup
+from screens.sim import result
 
 # from services.mock_vote_service import (
 #     generate_mock_votes,
 # )  # serviço que você irá implementar
 from utils.electionConfig_parser import load_election_config
 
+CONFIG_PATH = "electionConfig.json"
 console = Console()
 
 
-def display_tally(election: MockElection):
-    """Exibe o tally da eleição formatado com rich."""
-    console.print("\n[bold yellow]Tally Final da Simulação[/bold yellow]\n")
+def update_config(any_votes, double_votes):
+    with open(CONFIG_PATH, "r") as f:
+        config = json.load(f)
 
-    for cargo, votos in election.tally.items():
-        table = Table(
-            title=f"Tally - {cargo.upper()}",
-            show_header=True,
-            header_style="bold green",
-        )
-        table.add_column("Candidato", justify="center")
-        table.add_column("Votos", justify="center")
+    config["anyVotes"] = any_votes
+    config["doubleVotes"] = double_votes
+    # config["type"] = type
 
-        for candidato, count in votos.items():
-            table.add_row(str(candidato), str(count))
+    # if type == "Municipal":
+    #     for cargo in config.get("options", []):
+    #         if cargo["contest"] not in ["vereador", "prefeito"]:
+    #             cargo["candidates"] = 0
+    # else:  # Tipo "Geral"
+    #     for cargo in config.get("options", []):
+    #         if cargo["contest"] in ["vereador", "prefeito"]:
+    #             cargo["candidates"] = 0
+    #         else:
+    #             cargo["candidates"] = 2
 
-        console.print(table)
+    with open(CONFIG_PATH, "w") as f:
+        json.dump(config, f, indent=4)
+
+
+def vote_params():
+    any_votes = questionary.text(
+        "Quantos AnyVotes deseja gerar?",
+        default="10",
+        validate=lambda val: val.isdigit() and int(val) >= 0,
+    ).ask()
+
+    double_votes = questionary.text(
+        "Quantos votos duplicados deseja gerar?",
+        default="5",
+        validate=lambda val: val.isdigit() and int(val) >= 0,
+    ).ask()
+
+    # tipo = questionary.select(
+    #     "Escolha o tipo de eleição:", choices=["Municipal", "Geral"]
+    # ).ask()
+    return int(any_votes), int(double_votes)
 
 
 def format_config(config):
@@ -67,7 +95,18 @@ def table_cargos(cargos):
     return table
 
 
+# import questionary
+
+# config = {
+#     "anyVotes": 10,
+#     "doubleVotes": 5,
+#     "blankVotes": 2,
+#     "nullVotes": 1,
+# }
+
+
 def show():
+
     while True:
         console.clear()
         config = load_election_config()
@@ -76,6 +115,28 @@ def show():
             console.print(
                 "[bold red]Arquivo electionConfig.json não encontrado![/bold red]"
             )
+
+        painel_explicacao = Panel(
+            Align.left(
+                """
+[white]
+Esta etapa gera votos simulados que são cifrados com a chave pública da mixnet. Após a geração, os votos são processados para remover duplicações. Apenas a parte cifrada (escolhas por cargo) é enviada à mixnet para o embaralhamento.
+[/white]
+
+[blue]Geração e Cifragem → Remoção de Duplicados → Envio à Mixnet[/blue]
+
+Configure os parâmetros em [bold]electionConfig.json[/bold]
+"""
+            ),
+            title="[bold blue]Passo 3 - Simução de Votos[/bold blue]",
+            border_style="blue",
+            width=100,
+            padding=(1, 2),
+        )
+        console.print(painel_explicacao)
+
+        any_votes, double_votes = vote_params()
+        update_config(any_votes, double_votes)
 
         console.print(
             Panel(format_config(config), title="Configuração da Eleição"), width=80
@@ -90,24 +151,22 @@ def show():
         if escolha == "[GERAR VOTOS]":
             spinner = Spinner("dots", text="Gerando votos simulados...")
             with Live(spinner, refresh_per_second=10, transient=True):
-
                 hex_str = get_publickey()
                 key_bytes = bytes.fromhex(hex_str)
                 key = json.dumps(list(key_bytes))  # mesmo formato que você já usava
                 e = MockElection(key, config)
                 e.simulate()
                 e.export_tally()
-                display_tally(e)
-            console.print(
-                "\n[bold green]✓ Lista de AnyVotes disponível em output/ ![/bold green]"
-            )
-            input("[ENVIAR PARA SERVIDOR FLASK]")
+
+            spinner = Spinner("dots", text="Enviando para o backend...")
             with Live(spinner, refresh_per_second=10, transient=True):
                 flask_api.post_gavt("output/gavt.json")
+
+            spinner = Spinner("dots", text="Processando Votos...")
+            with Live(spinner, refresh_per_second=10, transient=True):
                 flask_api.process_gavt()
-            console.print("\n[bold green]✓ Lista de AnyVotes enviada ![/bold green]")
-            input("[CONTINUAR]")
-            return shuffle_setup.show()
+
+            return result.show()
         elif escolha == "[RECARREGAR electionConfig.json]":
             continue
         else:

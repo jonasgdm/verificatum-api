@@ -1,24 +1,12 @@
 import xml.etree.ElementTree as ET
-from pathlib import Path
-
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DEMO_DIR = BASE_DIR / "verificatum-demo"
 
 
-def load_file(filename):
-    caminho = BASE_DIR / DEMO_DIR / filename
-    if not caminho.exists():
-        raise FileNotFoundError(f"Arquivo não encontrado: {caminho}")
-    return caminho.read_text(encoding="utf-8")
-
-
-def parse_protinfo(filename="01/protInfo.xml"):
+def parse_protinfo(filename="protinfo"):
     """
     Lê e extrai as informações principais do protinfo.xml
     Retorna um dicionário estruturado com metadados e participantes.
     """
-    raw = load_file(filename)
-    root = ET.fromstring(raw)
+    root = ET.parse(filename)
 
     protocolo = {
         "versao": root.findtext("version"),
