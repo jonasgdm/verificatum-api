@@ -36,7 +36,7 @@ public class GuardianMixnetController {
         return MixnetCommon.keygen(BASE_DIR, NUM_SERVERS);
     }
 
-@PostMapping(value = "/decrypt", produces = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/decrypt", produces = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<MultiValueMap<String, Object>> decrypt() {
         try {
             // Gera versões modificadas com USB Bulletin Board

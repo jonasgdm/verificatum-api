@@ -85,37 +85,37 @@ public class ShufflerMixnetController {
         }
     }
 
-@PostMapping("/receive-ciphertexts")
-public Map<String, String> receiveCiphertexts(@RequestParam("file") MultipartFile file) {
-    try {
-        File target = new File(BASE_DIR + "/01/ciphertexts");
+    @PostMapping("/receive-ciphertexts")
+    public Map<String, String> receiveCiphertexts(@RequestParam("file") MultipartFile file) {
+        try {
+            File target = new File(BASE_DIR + "/01/ciphertexts");
 
-        // Ensure the parent directory exists
-        File parent = target.getParentFile();
-        if (!parent.exists()) {
-            parent.mkdirs();
-        }
-
-        // Save uploaded file to BASE_DIR/01/ciphertexts
-        file.transferTo(target);
-
-        // Copy ciphertext to other servers
-        for (int i = 2; i <= NUM_SERVERS; i++) {
-            File dir = new File(BASE_DIR + "/0" + i);
-            if (!dir.exists()) {
-                dir.mkdirs();
+            // Ensure the parent directory exists
+            File parent = target.getParentFile();
+            if (!parent.exists()) {
+                parent.mkdirs();
             }
-            Files.copy(target.toPath(),
-                    new File(dir, "ciphertexts").toPath(),
-                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        }
 
-        return Map.of("status", "Ciphertexts received and copied");
-    } catch (IOException e) {
-        e.printStackTrace();
-        return Map.of("error", "Failed to save ciphertexts: " + e.getMessage());
+            // Save uploaded file to BASE_DIR/01/ciphertexts
+            file.transferTo(target);
+
+            // Copy ciphertext to other servers
+            for (int i = 2; i <= NUM_SERVERS; i++) {
+                File dir = new File(BASE_DIR + "/0" + i);
+                if (!dir.exists()) {
+                    dir.mkdirs();
+                }
+                Files.copy(target.toPath(),
+                        new File(dir, "ciphertexts").toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            return Map.of("status", "Ciphertexts received and copied");
+        } catch (IOException e) {
+            e.printStackTrace();
+            return Map.of("error", "Failed to save ciphertexts: " + e.getMessage());
+        }
     }
-}
 
     @PostMapping("/shuffle")
     public Map<String, String> shuffle() {
