@@ -56,6 +56,9 @@ public class MixnetCommon {
             for (int i = 1; i <= numServers; i++) {
                 File dir = new File(baseDir + "/0" + i);
 
+                File bbDir = new File(dir, "bb");
+                bbDir.mkdirs();
+
                 run(dir, "vmni", "-prot",
                         "-sid", sessionId,
                         "-name", electionName,
@@ -143,72 +146,72 @@ public class MixnetCommon {
             File protUSB = new File(nodeDir, "protInfo-usb.xml");
             File privUSB = new File(nodeDir, "privInfo-usb.xml");
 
-            // Copia os arquivos originais
+            // Copy originals
             Files.copy(protFile.toPath(), protUSB.toPath(), StandardCopyOption.REPLACE_EXISTING);
             Files.copy(privFile.toPath(), privUSB.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-            // Substitui o bulletin board para o USB nos arquivos copiados
-            replaceInFile(protUSB, "com.verificatum.protocol.com.BullBoardBasicHTTPW",
-                                    "com.verificatum.protocol.com.USBBulletinBoard");
-            replaceInFile(privUSB, "</privkey>", "</privkey>\n    <bbdir>usb-bb</bbdir>");
+            // Make writable
+            protUSB.setWritable(true);
+            privUSB.setWritable(true);
+
+            // Replace <bullboard> + set fixed <http> and <hint>
+            fixUSBProtInfo(protUSB);
+
+            // Replace </privkey> with appended <bbdir> tag
+            fixUSBPrivInfo(privUSB, new File(nodeDir, "bb").getAbsolutePath());
+
+            // Make read-only again (optional)
+            protUSB.setWritable(false);
+            privUSB.setWritable(false);
         }
     }
 
-    private static void replaceInFile(File file, String target, String replacement) throws IOException {
+    private static void fixUSBProtInfo(File file) throws IOException {
         String content = Files.readString(file.toPath());
-        if (!content.contains(replacement)) { // evita duplicação
-            content = content.replace(target, replacement);
-            Files.writeString(file.toPath(), content);
-        }
+
+        // Replace the bulletin board class
+        content = content.replaceAll(
+            "<bullboard>.*?</bullboard>",
+            "<bullboard>com.verificatum.protocol.com.USBBulletinBoard</bullboard>"
+        );
+
+        // Add or replace <http> and <hint> entries with USB values
+        content = content.replaceAll(
+            "<http>.*?</http>",
+            "<http>http://localhost:8080</http>"
+        ).replaceAll(
+            "<hint>.*?</hint>",
+            "<hint>localhost:8080</hint>"
+        );
+
+        Files.writeString(file.toPath(), content);
     }
 
-    // public ResponseEntity<MultiValueMap<String, Object>> decrypt() {
-    //     try {
-    //         ExecutorService executor = Executors.newFixedThreadPool(numServers);
-    //         List<Future<?>> futures = new ArrayList<>();
-    
-    //         for (int i = 1; i <= numServers; i++) {
-    //             final int index = i;
-    //             Thread.sleep(1000);
-    //             futures.add(executor.submit(() -> {
-    //                 File dir = new File(baseDir + "/0" + index);
-    //                 try {
-    //                     MixnetCommon.run(dir, "vmn", "-decrypt", "shuffled-ciphertexts", "plaintexts");
-    //                 } catch (Exception e) {
-    //                     throw new RuntimeException(e);
-    //                 }
-    //             }));
-    //         }
-    
-    //         for (Future<?> f : futures) f.get();
-    //         executor.shutdown();
-    
-    //         File dir01 = new File(baseDir + "/01");
-    //         File logs = new File(baseDir + "/logs");
-    //         logs.mkdirs();
-    
-    //         // Convert plaintexts to native format
-    //         MixnetCommon.run(dir01, "vmnc", "-plain", "-outi", "native",
-    //                 "protInfo.xml", "plaintexts", "plaintexts.native");
-    
-    //         File nativeFile = new File(dir01, "plaintexts.native");
-    //         Files.copy(nativeFile.toPath(), new File(logs, "plaintexts.native").toPath(),
-    //                 StandardCopyOption.REPLACE_EXISTING);
-    
-    //         // Prepare multipart response
-    //         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-    //         body.add("file", new FileSystemResource(nativeFile));
-    
-    //         return ResponseEntity.ok()
-    //                 .contentType(MediaType.MULTIPART_FORM_DATA)
-    //                 .body(body);
-    
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //                 .body(null);
-    //     }
-    // }        
+    private static void fixUSBPrivInfo(File file, String absoluteBBDir) throws IOException {
+        String content = Files.readString(file.toPath());
+
+        // 1. Replace <skey>...</skey> with <privkey>...</privkey> and proper comment
+        content = content.replaceFirst(
+            "(?s)<!--\\s*Pair of public and private signature keys.*?-->\\s*<skey>(.*?)</skey>",
+            "<!-- Pair of public and private signature keys (instance of com.verificatum.crypto.SignatureKeyPair). -->\n   <privkey>$1</privkey>"
+        );
+
+        // 2. Insert <bbdir> right after </privkey> (absolute path)
+        if (!content.contains("<bbdir>")) {
+            content = content.replace(
+                "</privkey>",
+                "</privkey>\n\n   <!-- Directory for USB bulletin board file storage. -->\n   <bbdir>" + absoluteBBDir + "</bbdir>"
+            );
+        }
+
+        // 3. Remove ONLY HTTP-related fields, not big comment blocks
+        content = content.replaceAll("(?m)^\\s*<httpl>.*?</httpl>\\s*", "");
+        content = content.replaceAll("(?m)^\\s*<httpdir>.*?</httpdir>\\s*", "");
+        content = content.replaceAll("(?m)^\\s*<httptype>.*?</httptype>\\s*", "");
+        content = content.replaceAll("(?m)^\\s*<hintl>.*?</hintl>\\s*", "");
+
+        Files.writeString(file.toPath(), content);
+    }
 
     public static void cleanAndPrepareBase(String basePath, int numServers) throws IOException {
         File baseDir = new File(basePath);
