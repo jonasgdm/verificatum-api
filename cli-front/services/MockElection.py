@@ -9,6 +9,16 @@ import ast
 
 class MockElection:
     def __init__(self, public_key_str, election_config: dict):
+        self.election_id = "9999"
+        self.cargo_ids = {
+            "prefeito": "01",
+            "vereador": "02",
+            "deputado_estadual": "03",  # ou Distrital
+            "deputado_federal": "05",
+            "senador": "06",
+            "governador": "07",
+            "presidente": "11",
+        }
         self.public_key_str = public_key_str
         self.config = election_config
 
@@ -53,8 +63,13 @@ class MockElection:
             # Atualiza tally
             self.tally[contest][escolhido] += 1
 
+            contestID = self.cargo_ids.get(contest, 0)
+
+            ##Complete Vote = electionID + contestID + candidateID
+            vote = self.election_id + contestID + str(escolhido)
+
             # Criptografa e adiciona à lista
-            encrypted = self.encrypt(str(escolhido))
+            encrypted = self.encrypt(str(vote))
             encrypted_votes.append(encrypted)
 
         any_vote = {

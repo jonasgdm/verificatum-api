@@ -58,7 +58,7 @@ def show():
             abas.append(titulo)
 
         idx = questionary.select(
-            "Selecione uma eleição para shufflear:",
+            "Selecione uma eleição para embaralhar:",
             choices=[f"{i} - {abas[i]}" for i in range(len(abas))] + ["↩ Voltar"],
         ).ask()
 
@@ -68,40 +68,27 @@ def show():
         index = int(idx.split(" - ")[0])
         cargo = elections[index]["contest"]
 
-        confirm = questionary.confirm(
-            f"Executar shuffle e decrypt da eleição {cargo}?"
-        ).ask()
-        if not confirm:
-            continue
-
-        spinner = Spinner("dots", text=f"Executando shuffle e decrypt '{cargo}'...")
-        with Live(spinner, refresh_per_second=10, transient=True):
-            # 1. mandar listas p Shuffle
-            receive_resp = _post(f"/shuffle/{index}")
-        if not (
-            receive_resp
-            and receive_resp.get("status") == "Ciphertexts received and copied"
-        ):
-            console.print("\n[bold red]Erro ao enviar ciphertexts.[/bold red]\n")
-            return False
-
-        console.print(
-            "\n[bold green]Ciphertexts recebidos pelo verificatum[/bold green]"
-        )
-
-        input("> [SHUFFLE]")
+        # input("> [SHUFFLE]")
         spinner = Spinner("dots", text=f"Executando shuffle de '{cargo}'...")
         with Live(spinner, refresh_per_second=10, transient=True):
+            receive_resp = _post(f"/shuffle/{index}")
+            if not (
+                receive_resp
+                and receive_resp.get("status") == "Ciphertexts received and copied"
+            ):
+                console.print("\n[bold red]Erro ao enviar ciphertexts.[/bold red]\n")
+                return False
+
             # 2. Decrypt
             shuffle_resp = verificatum_api._post("/shuffler/shuffle")
-        print(shuffle_resp)
+
         if not (shuffle_resp and shuffle_resp.get("status") == "Shuffle complete"):
             console.print("\n[bold red]Erro ao realizar o shuffle.[/bold red]\n")
             return False
         console.print("\n[bold green]Shuffle realizado com sucesso[/bold green]")
 
-        input("> [DECRYPT]")
-        spinner = Spinner("dots", text=f"Executando decrypt de '{cargo}'...")
+        input("[DECIFRAR]")
+        spinner = Spinner("dots", text=f"Executando decifragem de '{cargo}'...")
         with Live(spinner, refresh_per_second=10, transient=True):
             try:
                 decrypt_resp = requests.post("http://localhost:8080/guardian/decrypt")

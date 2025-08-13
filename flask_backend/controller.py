@@ -34,8 +34,6 @@ class ShuffleController(MethodView):
                     files={"file": (f"DuplicateVotesTable_{index}", f, "text/plain")},
                 )
 
-                print(">>>", response)
-
             if response.ok:
                 return jsonify(response.json()), 200
             else:
@@ -65,43 +63,40 @@ class ProcessGAVTController(MethodView):
         seed_duplicate = "seed_contribuida_por_observadores"
 
         try:
-
             with open(GAVT_FILE, "r", encoding="utf-8") as f:
                 anyvotes = json.load(f)
         except Exception as e:
             print(f"[ERRO] Falha ao ler o arquivo GAVT: {e}")
             return "", 204
 
+        # Agrupa votos pelo tokenID
         grouped = defaultdict(list)
         for vote in anyvotes:
             grouped[vote["tokenID"]].append(vote)
 
+        # Filtra tokens com mais de 1 voto
         duplicates = {k: v for k, v in grouped.items() if len(v) > 1}
-        cargos_removidos = defaultdict(list)
+
+        votos_removidos = []
 
         for tokenID, votos in duplicates.items():
-            if len(votos) != 2:
-                continue  # tratamento só para pares por enquanto
+            # Escolhe o voto válido (maior PRF)
+            melhor_voto = max(
+                votos, key=lambda v: prf(seed_duplicate, json.dumps(v, sort_keys=True))
+            )
 
-            v1, v2 = votos
-            r1 = prf(seed_duplicate, json.dumps(v1, sort_keys=True))
-            r2 = prf(seed_duplicate, json.dumps(v2, sort_keys=True))
+            # Todos os outros são descartados
+            for voto in votos:
+                if voto is not melhor_voto:
+                    votos_removidos.extend(voto["encryptedVotes"])
 
-            _, removed = (v1, v2) if r1 > r2 else (v2, v1)
+        # Salva todos os votos descartados em um único arquivo
+        path = os.path.join(OUTPUT_DIR, "DuplicateVotesTable_0")
+        with open(path, "w", encoding="utf-8") as f:
+            for c in votos_removidos:
+                f.write(c + "\n")
 
-            for i, ciphertext in enumerate(removed["encryptedVotes"]):
-                cargos_removidos[i].append(ciphertext)
-
-        for idx, ciphertexts in cargos_removidos.items():
-            path = os.path.join(OUTPUT_DIR, f"DuplicateVotesTable_{idx}")
-            with open(path, "w", encoding="utf-8") as f:
-                for c in ciphertexts:
-                    f.write(c + "\n")
-
-        return (
-            jsonify({"status": "processed", "tokens": len(duplicates)}),
-            200,
-        )  # sem resposta, só efeito colateral nos arquivos
+        return jsonify({"status": "processed", "tokens": len(duplicates)}), 200
 
 
 class GAVTController(MethodView):
@@ -111,148 +106,3 @@ class GAVTController(MethodView):
         file = request.files["file"]
         file.save(f"./uploads/{file.filename}")
         return jsonify({"mensagem": "Arquivo recebido com sucesso"}), 200
-
-
-class ParseController(MethodView):
-    def post(self):
-        pass
-
-
-class Cypher01Controller(MethodView):
-    def get(self):
-        with open("logs/Ciphertexts01Native", "r") as f:
-            linhas = [linha.strip() for linha in f if linha.strip()]
-
-        return jsonify(linhas)
-
-
-class Cypher02Controller(MethodView):
-    def get(self):
-        with open("logs/Ciphertexts02Native", "r") as f:
-            linhas = [linha.strip() for linha in f if linha.strip()]
-
-        return jsonify(linhas)
-
-
-class AVTMockController(MethodView):
-
-    # {
-    #     "nMachines": 1,
-    #     "nContestOptions": [
-    #         10,
-    #         10,
-    #         10,
-    #         10,
-    #         10
-    #         ]
-    #     "nTotalVotes": 10,
-    #     "nAnyVotes": 1
-    #     "nDoubleVotes": 1
-    # }
-
-    def post(self):
-        data = request.get_json()
-
-        n_machines = data.get("nMachines")
-        number_contests_options = data.get("nContestOptions")
-        n_total_votes = data.get("nTotalVotes")
-        n_any_votes = data.get("nAnyVotes")
-        n_double_votes = data.get("nDoubleVotes")
-
-        candidate_digits = self.gen_candidates_codes(number_contests_options)
-        if len(number_contests_options) == 5:
-            number_contests_options = [0, 0] + number_contests_options
-        else:
-            number_contests_options + [0, 0, 0, 0, 0]
-        candidate_digits = self.gen_candidates_codes(number_contests_options)
-
-        gavt = []
-        for i in range(n_any_votes):
-            vote = self.genAnyVote(self.genTokenID(i), candidate_digits, n_machines)
-            gavt.append(vote)
-
-        for _ in range(n_double_votes):
-            double_Vote = random.choice(gavt)
-            gavt.append(double_Vote)
-
-        conventional = []
-        for i in range(n_total_votes - n_any_votes):
-            vote = self.genConventionalVote(candidate_digits)
-            conventional.append(vote)
-
-        return {"GAVT": gavt, "total": gavt + conventional}
-
-    def genAnyVote(self, tokenid, candidate_codes, nmachines):
-        # ELEICOES MUNICIPAIS
-        # vereador: 5 digitos
-        # prefeito: 2 digitos
-
-        # ELEICOES NACIONAIS
-        # dep. federal: 4 digitos
-        # dep. estadual: 5 digitos
-        # Senador: 3 digitos
-        # Gov.: 2 digitos
-        # Presidente: 2 digitos
-        # [0, 0, 2, 3, 4, 5, 6]
-
-        metadata = {
-            "hasbiometry": True,
-            "votingMachineID": random.randint(1, nmachines),
-        }
-
-        candidates = []
-        for codes in candidate_codes:
-            choice = random.choice(codes)  # escolher candidato
-            candidates.append(choice)
-        return {"tokenID": tokenid, "candidates": candidates, "metadata": metadata}
-
-    def gen_candidates_codes(self, n_contest_options):
-        candidates_digits = [
-            5,
-            2,
-            4,
-            5,
-            3,
-            2,
-            2,
-        ]  # vereador, prefeito, dep. fed., est., senador, gov., pres.
-        candidate_codes = []
-        for i, n in enumerate(n_contest_options):
-            if n == 0:
-                continue  # pula cargos com 0 candidatos
-            digits = candidates_digits[i]
-            start = int("9" * digits)
-
-            codes = [start - j for j in range(n)]
-            candidate_codes.append(codes)
-
-        return candidate_codes
-
-    def genTokenID(voter_index: int, seed="mock-election-2025"):
-        base_string = f"{seed}-{voter_index}"
-        return hashlib.sha256(base_string.encode()).hexdigest()[:12]
-
-
-class Mix1Controller(MethodView):
-    def post(self):
-        return jsonify(VerificatumApiService.mix(1))
-
-
-class Mix2Controller(MethodView):
-    def post(self):
-        return jsonify(VerificatumApiService.mix(2))
-
-
-class KeysController(MethodView):
-    def get(self):
-        return jsonify(
-            {
-                "key1": "MIXNODE1-KEY-ABCDEF123456",
-                "key2": "MIXNODE2-KEY-789XYZ987XYZ",
-            }
-        )
-
-
-class DecodeController(MethodView):
-    def post(self):
-        return jsonify({"votos": ["C", "A", "B", "A", "C", "B"]})

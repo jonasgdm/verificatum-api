@@ -5,8 +5,9 @@ from rich.console import Console
 import questionary
 from sys import exit
 
+from screens import tests
 from screens.sim import descrp, mock, result
-from screens.mix import shuffle_setup, shuffle
+from screens.mix import shuffle_setup, single_shuffle
 
 console = Console()
 

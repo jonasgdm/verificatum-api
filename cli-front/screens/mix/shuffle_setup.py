@@ -7,7 +7,7 @@ import questionary
 import requests
 from utils.electionConfig_parser import load_election_config
 from services.verificatum_api import _post
-from screens.mix import shuffle
+from screens.mix import single_shuffle
 
 # from screens import home, shuffle
 
@@ -25,13 +25,25 @@ def show():
     elections = config["options"]
 
     console.clear()
-
+    console.print(
+        Panel.fit(
+            "[white]"
+            "Os votos cifrados agora serão embaralhados para garantir o anonimato.\n\n"
+            "Isso impede que se descubra a ordem em que chegaram ou quem votou em quem. "
+            "Usamos uma rede com múltiplos servidores para executar essa etapa de forma segura, reutilizando a mesma chave pública usada na cifragem.\n\n"
+            "Após o embaralhamento, os votos embaralhados seguem para a próxima fase da apuração.\n"
+            "[/white]",
+            title="[bold blue]Etapa de Embaralhamento (Mixnet)[/bold blue]",
+            border_style="blue",
+            width=80,
+        )
+    )
     console.print(
         Panel(
             f"[bold]Eleições Ativas:[/bold] {len(elections)}\n"
             f"[bold]Total de votos:[/bold] {config['anyVotes'] + config['conventionalVotes'] + config['doubleVotes']}\n"
-            f"[bold]AnyVotes:[/bold] {config['anyVotes']} | "
-            f"[bold]Duplicados:[/bold] {config['doubleVotes']}\n",
+            f"[bold]AnyVotes:[/bold] {config['anyVotes']}\n"
+            f"[bold]Duplicados:[/bold]{config['doubleVotes']}\n",
             title="Resumo Geral",
             width=80,
         )
@@ -47,13 +59,13 @@ def show():
             response = _post(
                 "/shuffler/setup?publicKeyUrl=http://localhost:8080/guardian/public-key"
             )
-        print(response)
+
         if response and response.get("status") == "Shuffler setup complete":
             console.print(
                 "\n[bold green]✓ Shuffler Setup concluído com sucesso![/bold green]\n"
             )
             input("[CONTINUAR]")
-            return shuffle.show()
+            return single_shuffle.show()
         else:
             return False
 
