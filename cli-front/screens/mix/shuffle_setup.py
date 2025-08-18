@@ -49,12 +49,12 @@ def show():
         )
     )
     escolha = questionary.select(
-        "Iniciar setup:",
-        choices=["[SETUP SHUFFLER]", "[↩ VOLTAR]"],
+        "Iniciar shuffling:",
+        choices=["[COMEÇAR SHUFFLER]", "[↩ VOLTAR]"],
     ).ask()
 
-    if escolha == "[SETUP SHUFFLER]":
-        spinner = Spinner("dots", text="Fazendo setup do shuffler...")
+    if escolha == "[COMEÇAR SHUFFLER]":
+        spinner = Spinner("dots", text="Carregando o Shuffler...")
         with Live(spinner, refresh_per_second=10, transient=True):
             response = _post(
                 "/shuffler/setup?publicKeyUrl=http://localhost:8080/guardian/public-key"
@@ -62,7 +62,7 @@ def show():
 
         if response and response.get("status") == "Shuffler setup complete":
             console.print(
-                "\n[bold green]✓ Shuffler Setup concluído com sucesso![/bold green]\n"
+                "\n[bold green]✓ Shuffler devidamente carregado![/bold green]\n"
             )
             input("[CONTINUAR]")
             return single_shuffle.show()

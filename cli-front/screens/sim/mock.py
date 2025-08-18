@@ -137,6 +137,7 @@ Configure os parâmetros em [bold]electionConfig.json[/bold]
 
         any_votes, double_votes = vote_params()
         update_config(any_votes, double_votes)
+        config = load_election_config()
 
         console.print(
             Panel(format_config(config), title="Configuração da Eleição"), width=80
