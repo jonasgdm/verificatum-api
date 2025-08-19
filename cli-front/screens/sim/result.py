@@ -1,7 +1,7 @@
 from rich.table import Table
 from rich.panel import Panel
 from rich.console import Console
-from services import MockElection
+from app.mock_election import MockElection
 from rich.align import Align
 from rich import box
 import readchar

@@ -1,17 +1,19 @@
-from services.MockElection import MockElection
-from services.verificatum_api import get_publickey
 import json
-from utils.electionConfig_parser import load_election_config
-
-CONFIG_PATH = "electionConfig.json"
+from app.mock_election import MockElection
+from infra.encryptors.node_daemon import NodeDaemonEncryptor
 
 
 def show():
-    config = load_election_config()
+    with open("electionConfig.json") as f:
+        cfg = json.load(f)
+    # with open("protinfo/publicKey.json") as f:
+    #     pk = f.read()
 
-    hex_str = get_publickey()
-    key_bytes = bytes.fromhex(hex_str)
-    key = json.dumps(list(key_bytes))  # mesmo formato que você já usava
-    e = MockElection(key, config)
-    e.simulate()
-    print(e.candidate_codes)
+    encryptor = NodeDaemonEncryptor(pk)  # hoje: daemon local
+    app = MockElection(pk, cfg, encryptor)  # domínio recebe a porta
+    app.simulate()
+    app.export_tally()
+    try:
+        encryptor.close()
+    except Exception:
+        pass

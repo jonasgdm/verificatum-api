@@ -11,7 +11,6 @@ from rich.align import Align
 
 import questionary
 import json
-from services.MockElection import MockElection
 
 # from utils.protinfo_parser import load_file
 
@@ -25,6 +24,9 @@ from screens.sim import result
 #     generate_mock_votes,
 # )  # serviço que você irá implementar
 from utils.electionConfig_parser import load_election_config
+
+from app.mock_election import MockElection
+from infra.encryptors.node_daemon import NodeDaemonEncryptor
 
 CONFIG_PATH = "electionConfig.json"
 console = Console()
@@ -155,9 +157,14 @@ Configure os parâmetros em [bold]electionConfig.json[/bold]
                 hex_str = get_publickey()
                 key_bytes = bytes.fromhex(hex_str)
                 key = json.dumps(list(key_bytes))  # mesmo formato que você já usava
-                e = MockElection(key, config)
-                e.simulate()
-                e.export_tally()
+                encryptor = NodeDaemonEncryptor(key)
+                app = MockElection(key, config, encryptor)
+                app.simulate()
+                app.export_tally()
+                try:
+                    encryptor.close()
+                except Exception:
+                    pass
 
             spinner = Spinner("dots", text="Enviando para o backend...")
             with Live(spinner, refresh_per_second=10, transient=True):

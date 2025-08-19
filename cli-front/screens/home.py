@@ -44,7 +44,7 @@ def show():
     ).ask()
 
     if escolha.startswith("1"):
-        return descrp.show()
+        return mock.show()
     elif escolha.startswith("2"):
         return shuffle_setup.show()
     elif escolha.startswith("0"):

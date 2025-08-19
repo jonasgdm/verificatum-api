@@ -1,7 +1,7 @@
 // Carrega o VJSC modificado com global.verificatum
 require("./min-vjsc-1.1.1.js");
 const verificatum = global.verificatum;
-const fs = require("fs");
+
 
 /**
  * Cifra um plaintext usando uma chave pública no formato ByteTree.
@@ -10,6 +10,7 @@ const fs = require("fs");
  * @param {string} publicKeyJsonString - Chave pública como string JSON.
  * @returns {string} - Ciphertext serializado (ByteTree em base64 JSON).
  */
+
 function encryptWithPublicKey(plaintext, publicKeyJsonString) {
     const pk = JSON.parse(publicKeyJsonString);
     const bt = verificatum.eio.ByteTree.readByteTreeFromByteArray(pk);
@@ -34,13 +35,4 @@ function encryptWithPublicKey(plaintext, publicKeyJsonString) {
     return JSON.stringify(root.toByteArray());
 }
 
-if (require.main === module) {
-    const plaintext = process.argv[2];
-    let input = "";
-    process.stdin.setEncoding("utf8");
-    process.stdin.on("data", chunk => input += chunk);
-    process.stdin.on("end", () => {
-        const ciphertext = encryptWithPublicKey(plaintext, input);
-        console.log(ciphertext);
-    });
-}
+module.exports = { encryptWithPublicKey };

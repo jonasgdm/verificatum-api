@@ -15,18 +15,6 @@ def get_publickey():
     return _get("/guardian/public-key")
 
 
-# def post_generate_ciphertexts(payload=None):
-#     return _post("/generate-ciphertexts", payload)
-
-
-# def post_mix(payload=None):
-#     return _post("/mix", payload)
-
-
-# def post_verify(payload=None):
-#     return _post("/verify", payload)
-
-
 def _post(endpoint, payload=None):
     url = f"{BASE_URL}{endpoint}"
     try:
