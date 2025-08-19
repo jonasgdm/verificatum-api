@@ -53,6 +53,23 @@ class NodeDaemonEncryptor:
         )
         return r["hex"]
 
+    def encrypt_batch(
+        self,
+        values: List[str],
+    ) -> List[str]:
+        r = self._rpc(
+            "enc_batch",
+            {"values": values},
+        )
+
+        # se o daemon mandou estatísticas, mostra
+        # if "stats" in r:
+        #     count = r["stats"].get("count")
+        #     elapsed = r["stats"].get("elapsed")
+        #     print(f">{count} plaintexts cifrados em {elapsed:.2f} segundos")
+
+        return r["hex_list"]
+
     def close(self):
         try:
             self._send({"type": "close"})

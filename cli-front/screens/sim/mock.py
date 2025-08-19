@@ -156,15 +156,18 @@ Configure os parâmetros em [bold]electionConfig.json[/bold]
             with Live(spinner, refresh_per_second=10, transient=True):
                 hex_str = get_publickey()
                 key_bytes = bytes.fromhex(hex_str)
-                key = json.dumps(list(key_bytes))  # mesmo formato que você já usava
+                key = json.dumps(list(key_bytes))
+
                 encryptor = NodeDaemonEncryptor(key)
                 app = MockElection(key, config, encryptor)
                 app.simulate()
+
                 app.export_tally()
                 try:
                     encryptor.close()
                 except Exception:
                     pass
+            input()
 
             spinner = Spinner("dots", text="Enviando para o backend...")
             with Live(spinner, refresh_per_second=10, transient=True):
