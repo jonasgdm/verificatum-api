@@ -7,7 +7,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
@@ -196,6 +195,22 @@ public class GuardianMixnetController {
     @PostMapping("/decrypt-local")
     public Map<String, String> decryptLocal(@RequestParam int serverId) {
         return MixnetCommon.decryptLocal(cfg().baseDir, serverId);
+    }
+
+    @GetMapping("/public-key")
+    public ResponseEntity<FileSystemResource> getPublicKeyNative() {
+        try {
+            String baseDir = "verificatum-guardian"; // or GuardianConfig.get().baseDir if you already have it
+            File nativePk = NativeConverters.ensureGuardianPublicKeyNative(baseDir);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=publicKey.native")
+                    .contentLength(nativePk.length())
+                    .body(new FileSystemResource(nativePk));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
+        }
     }
 
     /* =====================

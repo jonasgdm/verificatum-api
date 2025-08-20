@@ -1,5 +1,8 @@
 package com.example.verificatumapi;
 
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -157,6 +160,36 @@ public Map<String, String> receiveCiphertexts(@RequestParam("file") MultipartFil
         } catch (Exception e) {
             e.printStackTrace();
             return Map.of("error", "Shuffle failed: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/shuffled-ciphertexts")
+    public ResponseEntity<FileSystemResource> getShuffledCiphertextsNative() {
+        try {
+            String baseDir = System.getProperty("user.dir") + "/shuffler-demo"; // keep consistent with your class
+            File nativeFile = NativeConverters.ensureShufflerShuffledNative(baseDir);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=shuffled.native")
+                    .contentLength(nativeFile.length())
+                    .body(new FileSystemResource(nativeFile));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/log")
+    public ResponseEntity<FileSystemResource> getShufflerLog() {
+        try {
+            String baseDir = System.getProperty("user.dir") + "/shuffler-demo";
+            File log = NativeConverters.shufflerLogFile(baseDir);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=vmn.log")
+                    .contentLength(log.length())
+                    .body(new FileSystemResource(log));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
         }
     }
 }
