@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.*;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -85,8 +86,18 @@ public class GuardianMixnetController {
     }    
 
     @GetMapping("/public-key")
-    public byte[] getPublicKey() throws IOException {
-        File key = new File(BASE_DIR + "/logs/publicKey");
-        return Files.readAllBytes(key.toPath());
+    public ResponseEntity<FileSystemResource> getPublicKeyNative() {
+        try {
+            String baseDir = "verificatum-guardian"; // or GuardianConfig.get().baseDir if you already have it
+            File nativePk = NativeConverters.ensureGuardianPublicKeyNative(baseDir);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=publicKey.native")
+                    .contentLength(nativePk.length())
+                    .body(new FileSystemResource(nativePk));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
+        }
     }
 }
