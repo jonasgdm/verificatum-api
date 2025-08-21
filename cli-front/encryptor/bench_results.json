@@ -1,37 +1,37 @@
 [
   {
     "N": 50,
-    "elapsed": 2.598,
-    "throughput": 19.24557351809084
+    "elapsed": 2.585,
+    "throughput": 19.342359767891683
   },
   {
     "N": 100,
-    "elapsed": 5.162,
-    "throughput": 19.372336303758235
+    "elapsed": 5.143,
+    "throughput": 19.443904335990666
   },
   {
     "N": 500,
-    "elapsed": 25.929,
-    "throughput": 19.283427822129664
+    "elapsed": 27.018,
+    "throughput": 18.506181064475534
   },
   {
     "N": 1000,
-    "elapsed": 52.107,
-    "throughput": 19.191279482603104
+    "elapsed": 53.43,
+    "throughput": 18.716077110237695
   },
   {
     "N": 2000,
-    "elapsed": 103.881,
-    "throughput": 19.252798875636547
+    "elapsed": 108.382,
+    "throughput": 18.453248694432656
   },
   {
     "N": 5000,
-    "elapsed": 268.712,
-    "throughput": 18.607282145940637
+    "elapsed": 273.377,
+    "throughput": 18.289761025982433
   },
   {
     "N": 10000,
-    "elapsed": 550.684,
-    "throughput": 18.15923469721292
+    "elapsed": 568.457,
+    "throughput": 17.591480094360698
   }
 ]
