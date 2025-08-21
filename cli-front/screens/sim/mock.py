@@ -97,16 +97,6 @@ def table_cargos(cargos):
     return table
 
 
-# import questionary
-
-# config = {
-#     "anyVotes": 10,
-#     "doubleVotes": 5,
-#     "blankVotes": 2,
-#     "nullVotes": 1,
-# }
-
-
 def show():
 
     while True:
@@ -171,10 +161,12 @@ Configure os parâmetros em [bold]electionConfig.json[/bold]
 
             spinner = Spinner("dots", text="Enviando para o backend...")
             with Live(spinner, refresh_per_second=10, transient=True):
+                # Manda gavt para o back de flask
                 flask_api.post_gavt("output/gavt.json")
 
             spinner = Spinner("dots", text="Processando Votos...")
             with Live(spinner, refresh_per_second=10, transient=True):
+                # Processa o Gavt
                 flask_api.process_gavt()
 
             return result.show()

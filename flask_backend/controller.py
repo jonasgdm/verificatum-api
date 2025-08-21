@@ -21,8 +21,8 @@ def prf(seed: str, data: str) -> int:
 
 
 class ShuffleController(MethodView):
-    def post(self, index):
-        file_path = f"./output/DuplicateVotesTable_{index}"
+    def post(self):
+        file_path = f"./output/DuplicateVotesTable"
 
         if not os.path.exists(file_path):
             return jsonify({"error": f"Arquivo {file_path} não encontrado"}), 404
@@ -31,7 +31,7 @@ class ShuffleController(MethodView):
             with open(file_path, "rb") as f:
                 response = requests.post(
                     "http://localhost:8080/shuffler/receive-ciphertexts",
-                    files={"file": (f"DuplicateVotesTable_{index}", f, "text/plain")},
+                    files={"file": (f"DuplicateVotesTable", f, "text/plain")},
                 )
 
             if response.ok:
@@ -90,8 +90,10 @@ class ProcessGAVTController(MethodView):
                 if voto is not melhor_voto:
                     votos_removidos.extend(voto["encryptedVotes"])
 
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+
         # Salva todos os votos descartados em um único arquivo
-        path = os.path.join(OUTPUT_DIR, "DuplicateVotesTable_0")
+        path = os.path.join(OUTPUT_DIR, "DuplicateVotesTable")
         with open(path, "w", encoding="utf-8") as f:
             for c in votos_removidos:
                 f.write(c + "\n")
@@ -103,6 +105,14 @@ class GAVTController(MethodView):
     def post(self):
         if "file" not in request.files:
             return jsonify({"erro": "Arquivo não enviado"}), 400
+
         file = request.files["file"]
-        file.save(f"./uploads/{file.filename}")
-        return jsonify({"mensagem": "Arquivo recebido com sucesso"}), 200
+
+        # garante que a pasta /uploads existe
+        os.makedirs("./uploads", exist_ok=True)
+
+        # salva sempre com nome fixo
+        filepath = os.path.join("./uploads", "gavt.json")
+        file.save(filepath)
+
+        return jsonify({"mensagem": f"Arquivo salvo em {filepath}"}), 200

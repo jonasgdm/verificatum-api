@@ -92,7 +92,7 @@ def show():
 
 
 def execute_shuffle():
-    receive_resp = _post(f"/shuffle/0")
+    receive_resp = _post(f"/shuffle")
     if not (
         receive_resp and receive_resp.get("status") == "Ciphertexts received and copied"
     ):
