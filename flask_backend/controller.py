@@ -10,7 +10,7 @@ import hashlib
 import os, json, hmac, hashlib
 from collections import defaultdict
 
-GAVT_FILE = "./uploads/output/gavt.json"
+GAVT_FILE = "./uploads/gavt.json"
 OUTPUT_DIR = "./output"
 
 
