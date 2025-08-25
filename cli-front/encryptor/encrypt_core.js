@@ -43,13 +43,14 @@ function encryptOnce(plaintext) {
     const ascii = [...plaintext].map(c => c.charCodeAt(0));
     const encoded = state.wpk.pGroup.project(1).encode(ascii);
     const encrypted = eg_local.encrypt(state.wpk, encoded);
-
-    const e0 = encrypted.values[0].toByteTree().toByteArray();
-    const e1 = encrypted.values[1].toByteTree().toByteArray();
-    const u8 = new Uint8Array(e0.length + e1.length);
-    u8.set(e0, 0);
-    u8.set(e1, e0.length);
-    return Buffer.from(u8).toString("hex"); // já retorna HEX
+    const btBytes = encrypted.toByteTree().toByteArray();
+    return Buffer.from(btBytes).toString("hex");
+    // const e0 = encrypted.values[0].toByteTree().toByteArray();
+    // const e1 = encrypted.values[1].toByteTree().toByteArray();
+    // const u8 = new Uint8Array(e0.length + e1.length);
+    // u8.set(e0, 0);
+    // u8.set(e1, e0.length);
+    // return Buffer.from(u8).toString("hex"); // já retorna HEX
 }
 
 module.exports = { initWithPublicKey, encryptOnce };
