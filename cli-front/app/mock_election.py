@@ -110,7 +110,7 @@ class MockElection:
             total_plaintexts += len(v["encryptedVotes"])
 
         elapsed = time.time() - start
-        print(f"{total_plaintexts} plaintexts cifrados em {elapsed:.2f} segundos")
+        print(f"> {total_plaintexts} plaintexts cifrados em {elapsed:.2f} segundos")
 
         self.export_gavt("json")
         self.export_gavt("csv")

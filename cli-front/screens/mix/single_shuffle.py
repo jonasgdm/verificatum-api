@@ -14,7 +14,7 @@ from rich.table import Table
 from collections import Counter
 
 from screens import home
-from screens.mix import final_tally
+from screens.mix import final_tally, shuffle_result
 
 console = Console()
 TALLY_PATH = "output/tally.json"
@@ -70,14 +70,14 @@ def show():
                     console.print(
                         "\n[bold green]Shuffle realizado com sucesso[/bold green]"
                     )
-            input()
+            shuffle_result.show()
 
         elif escolha.startswith("2."):
-            spinner = Spinner("dots", text=f"Executando decifragem'...")
+            spinner = Spinner("dots", text=f"Executando decifração...")
             with Live(spinner, refresh_per_second=10, transient=True):
                 if execute_decrypt():
                     console.print(
-                        f"\n[bold green]✓ Decifragem concluída.[/bold green]\n"
+                        f"\n[bold green]✓ Decifração concluída.[/bold green]\n"
                         "O arquivo foi salvo em 'decrypted/decrypted.native'.\n "
                         "Agora vá para [bold]Apuração Final[/bold] para ver os resultados.\n"
                     )
@@ -131,41 +131,3 @@ def execute_decrypt():
 
 def show_final_tally(tally):
     final_tally.mostrar_apuracao_final(tally)
-    # # 1. Ler os votos do arquivo .native (já feito)
-    # with open(path, "r", encoding="utf-8") as f:
-    #     decrypted_votes = [linha.strip() for linha in f if linha.strip()]
-
-    # # 2. Processar tally original e novo
-    # votos_originais = tally.get(cargo, {})
-    # tally_original = {str(k): int(v) for k, v in votos_originais.items()}
-    # tally_decrypt = Counter(decrypted_votes)
-
-    # # 3. Preparar tabela comparativa
-    # table = Table(title=f"Tally Comparativo - {cargo}", show_lines=True)
-    # table.add_column("Candidato", justify="center")
-    # table.add_column("Original", justify="center")
-    # table.add_column("Descartados", justify="center")
-    # table.add_column("Válidos", justify="center")
-
-    # todos_candidatos = set(tally_original.keys()).union(tally_decrypt.keys())
-
-    # for candidato in sorted(todos_candidatos):
-    #     orig = tally_original.get(candidato, 0)
-    #     novo = tally_decrypt.get(candidato, 0)
-    #     diff = orig - novo
-    #     table.add_row(candidato, str(orig), str(novo), str(diff))
-
-    # # 4. Totais
-    # total_original = sum(tally_original.values())
-    # total_decrypt = sum(tally_decrypt.values())
-    # total_descartados = total_original - total_decrypt
-
-    # # 5. Exibir
-    # console.clear()
-    # console.print(
-    #     f"[bold cyan]📥 Resultado após shuffle e decrypt: {cargo}[/bold cyan]\n"
-    # )
-    # console.print(table)
-    # console.print(f"\n[bold]Total original:[/bold] {total_original}")
-    # console.print(f"[bold]Descartados:[/bold] {total_decrypt}")
-    # console.print(f"[bold red]Válidos:[/bold red] {total_descartados}\n")

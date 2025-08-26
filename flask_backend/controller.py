@@ -1,5 +1,5 @@
 from flask.views import MethodView
-from flask import request, jsonify
+from flask import request, jsonify, send_file
 from services.publicKey_service import VerificatumApiService
 from services.vote_processing_services import process_gavt
 import time
@@ -116,3 +116,12 @@ class GAVTController(MethodView):
         file.save(filepath)
 
         return jsonify({"mensagem": f"Arquivo salvo em {filepath}"}), 200
+
+    def get(self):
+        filepath = os.path.join("./output", "DuplicateVotesTable")
+
+        if not os.path.exists(filepath):
+            return jsonify({"erro": "Arquivo não encontrado"}), 404
+
+        # retorna o arquivo salvo
+        return send_file(filepath, as_attachment=True)

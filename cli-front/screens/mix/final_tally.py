@@ -161,6 +161,26 @@ def mostrar_apuracao_final(tally_json):
 
     while True:
         console.clear()
+
+        console.print(
+            Panel(
+                "[white]\n"
+                "• Esta tela mostra a [bold]apuração final[/bold] após a remoção de votos duplicados.\n"
+                "• Antes, a mixnet embaralhou e re-encriptou todos os votos para "
+                "quebrar a ligação entre eleitor e ciphertext.\n"
+                "• Em seguida, votos com o mesmo identificador ([cyan]tokenID[/cyan]) "
+                "foram detectados como duplicados.\n"
+                "• Em uma eleição real, isso corresponde a tentativas de um mesmo eleitor votar mais de uma vez.\n"
+                "• O sistema escolhe um voto válido e [bold red]descarta[/bold red] os demais, "
+                "mantendo apenas um voto por eleitor.\n"
+                "• O resultado garante [bold green]integridade[/bold green], "
+                "[bold green]equidade[/bold green] e [bold magenta]anonimato[/bold magenta].\n"
+                "[/white]",
+                title="[bold blue]Apuração Final após Descarte de Duplicados[/bold blue]",
+                width=100,
+                padding=(1, 2),
+            )
+        )
         console.print(
             Panel(
                 "[bold]Apuração Final[/bold]\n"

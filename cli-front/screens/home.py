@@ -7,7 +7,7 @@ from sys import exit
 
 from screens import tests
 from screens.sim import descrp, mock, result
-from screens.mix import shuffle_setup, single_shuffle
+from screens.mix import shuffle_setup, single_shuffle, shuffle_result
 
 console = Console()
 
@@ -39,6 +39,7 @@ def show():
         choices=[
             "1. Simular Votação",
             "2. Mixagem e Decifração",
+            "3. Tests",
             "0. Sair",
         ],
     ).ask()
@@ -47,6 +48,8 @@ def show():
         return descrp.show()
     elif escolha.startswith("2"):
         return shuffle_setup.show()
+    elif escolha.startswith("3"):
+        return result.show()
     elif escolha.startswith("0"):
         console.print("[red]Encerrando...[/red]")
         exit()

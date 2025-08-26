@@ -138,10 +138,10 @@ Configure os parâmetros em [bold]electionConfig.json[/bold]
 
         escolha = questionary.select(
             "Deseja gerar os votos simulados?",
-            choices=["[GERAR VOTOS]", "[RECARREGAR electionConfig.json]", "[↩ VOLTAR]"],
+            choices=["1. Gerar Votos", "2. electionConfig.json", "[↩ VOLTAR]"],
         ).ask()
 
-        if escolha == "[GERAR VOTOS]":
+        if escolha.startswith("1"):
             spinner = Spinner("dots", text="Gerando votos simulados...")
             with Live(spinner, refresh_per_second=10, transient=True):
                 hex_str = get_publickey()
@@ -157,7 +157,7 @@ Configure os parâmetros em [bold]electionConfig.json[/bold]
                     encryptor.close()
                 except Exception:
                     pass
-            input()
+            input("[Continuar]")
 
             spinner = Spinner("dots", text="Enviando para o backend...")
             with Live(spinner, refresh_per_second=10, transient=True):
@@ -170,7 +170,7 @@ Configure os parâmetros em [bold]electionConfig.json[/bold]
                 flask_api.process_gavt()
 
             return result.show()
-        elif escolha == "[RECARREGAR electionConfig.json]":
+        elif escolha.startswith("2"):
             continue
         else:
             console.print("[italic]Operação cancelada.[/italic]")

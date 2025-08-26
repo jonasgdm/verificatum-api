@@ -15,6 +15,14 @@ def get_publickey():
     return _get("/guardian/public-key")
 
 
+def get_log():
+    return _get("/shuffler/log")
+
+
+def get_shuffled():
+    return _get("/shuffler/shuffled-ciphertexts")
+
+
 def _post(endpoint, payload=None):
     url = f"{BASE_URL}{endpoint}"
     try:

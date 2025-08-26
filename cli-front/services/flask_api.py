@@ -32,3 +32,15 @@ def _post(endpoint, payload=None):
         return response.json()
     except requests.RequestException as e:
         raise RuntimeError(f"[Erro] Falha na requisição para {url}: {e}")
+
+
+def _get(endpoint, payload=None):
+    url = f"{BASE_URL}{endpoint}"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+
+        return response.text
+    except requests.RequestException as e:
+        print(f"[Erro] Falha na requisição para {url}: {e}")
+        return None
