@@ -1,7 +1,6 @@
 package com.example.verificatumapi;
 
 import java.io.*;
-import java.nio.file.Files;
 import java.util.*;
 
 public class MixnetCommon {
@@ -44,8 +43,9 @@ public class MixnetCommon {
                     "-http", "http://localhost:804" + serverId,
                     "-hint", "localhost:404" + serverId);
 
+            String piName = "protInfo" + String.format("%02d", serverId) + ".xml";
             new File(dir, "localProtInfo.xml")
-                    .renameTo(new File(dir, "protInfo0" + serverId + ".xml"));
+                .renameTo(new File(dir, piName));
 
             return Map.of("status", "Setup local complete (server " + serverId + ")");
         } catch (Exception e) {
@@ -63,7 +63,7 @@ public class MixnetCommon {
             List<String> args = new ArrayList<>();
             args.add("vmni"); args.add("-merge");
             for (int k = 1; k <= numServers; k++) {
-                args.add("protInfo0" + (k < 10 ? "0" + k : k) + ".xml"); // keep 0X names
+                args.add("protInfo" + String.format("%02d", k) + ".xml");
             }
             run(dir, args.toArray(new String[0]));
             return Map.of("status", "Merge local complete (server " + serverId + ")");
@@ -78,6 +78,7 @@ public class MixnetCommon {
        ===================== */
     public static Map<String, String> keygenLocal(String baseDir, int serverId) {
         try {
+            VerificatumCleaner.freeGuardianServer(serverId);
             File dir = new File(baseDir + "/0" + serverId);
             run(dir, "vmn", "-keygen", "publicKey");
             return Map.of("status", "Keygen local complete (server " + serverId + ")");
@@ -92,8 +93,11 @@ public class MixnetCommon {
        ===================== */
     public static Map<String, String> decryptLocal(String baseDir, int serverId) {
         try {
+            VerificatumCleaner.freeGuardianServer(serverId);
             File dir = new File(baseDir + "/0" + serverId);
-            run(dir, "vmn", "-decrypt", "shuffled-ciphertexts", "plaintexts");
+            run(dir, "vmn", "-decrypt",
+                "privInfo.xml", "protInfo.xml",
+                "shuffled-ciphertexts", "plaintexts");
             return Map.of("status", "Decrypt local complete (server " + serverId + ")");
         } catch (Exception e) {
             e.printStackTrace();
@@ -149,5 +153,48 @@ public class MixnetCommon {
         List<Integer> ports = new ArrayList<>();
         for (int p = startPort; p <= endPort; p++) ports.add(p);
         killHintPorts(ports);
+    }
+
+    public static void startKeygenDetached(String baseDir, int serverId) throws IOException, InterruptedException {
+        File dir = new File(baseDir + "/0" + serverId);
+        if (!dir.exists()) dir.mkdirs();
+
+        // limpa log anterior para ficar legível
+        File log = new File(dir, "vmn.log");
+        if (log.exists()) log.delete();
+
+        // nohup + background; saída vai para vmn.log
+        String cmd = "nohup vmn -keygen publicKey >> vmn.log 2>&1 < /dev/null &";
+        new ProcessBuilder("bash", "-lc", cmd)
+                .directory(dir)
+                .redirectErrorStream(true)
+                .start()
+                .waitFor(); // só espera o *spawn* do nohup, não o vmn
+    }
+
+    public static boolean waitForFile(File f, long timeoutMs) throws InterruptedException {
+        long end = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < end) {
+            if (f.exists() && f.length() > 0) return true;
+            Thread.sleep(500);
+        }
+        return false;
+    }
+
+    public static void startDecryptDetached(String baseDir, int serverId) throws IOException, InterruptedException {
+        File dir = new File(baseDir + "/0" + serverId);
+        if (!dir.exists()) dir.mkdirs();
+
+        // limpa log anterior deste nó
+        File log = new File(dir, "vmn.log");
+        if (log.exists()) log.delete();
+
+        // nohup + background; saída vai para vmn.log
+        String cmd = "nohup vmn -decrypt shuffled-ciphertexts plaintexts >> vmn.log 2>&1 < /dev/null &";
+        new ProcessBuilder("bash", "-lc", cmd)
+                .directory(dir)
+                .redirectErrorStream(true)
+                .start()
+                .waitFor(); // aguarda só o spawn, não o término do vmn
     }
 }

@@ -33,7 +33,13 @@ public class GuardianMixnetController {
             c.baseDir = "verificatum-guardian";
             c.sessionId = "GuardianSession";
             c.electionName = "Guardian_Election";
-            c.localServerId = 1;
+            c.localServerId = 1;    
+
+            // limpeza completa antes do setup
+            VerificatumCleaner.resetGuardian(c.baseDir, c.numServers);
+
+            // recria estrutura limpa
+            MixnetCommon.cleanAndPrepareBase(c.baseDir, c.numServers);
 
             if (auto) {
                 // Expect body.servers = ["user@ip_for_id2", "user@ip_for_id3", ...]
@@ -95,6 +101,9 @@ public class GuardianMixnetController {
         c.numServers = numServers;
         c.sessionId = sessionId;
         c.electionName = electionName;
+
+        VerificatumCleaner.resetGuardianNode(c.baseDir, serverId);
+
         return MixnetCommon.setupLocal(c.baseDir, sessionId, electionName, numServers, serverId);
     }
 
@@ -117,20 +126,36 @@ public class GuardianMixnetController {
             GuardianConfig c = cfg();
             ensureSetupConfigured(c);
 
+            // sempre libere portas do nó 1 antes
+            VerificatumCleaner.freeGuardianServer(1);
+
             if (c.auto) {
-                // local
-                MixnetCommon.keygenLocal(c.baseDir, 1);
-                // remotes
+                // 1) inicia local em background
+                MixnetCommon.startKeygenDetached(c.baseDir, 1);
+
+                // 2) inicia remotos em background (curl retorna rápido)
                 for (int id = 2; id <= c.numServers; id++) {
                     String remote = c.servers.get(id - 2);
-                    String cmd = "curl -sS -X POST http://localhost:8080/guardian/keygen-local"
+                    String cmd = "curl -sS -X POST http://localhost:8080/guardian/keygen-local-async"
                             + " -d 'serverId=" + id + "'";
                     RemoteExecutor.executeSSH(remote, cmd);
                 }
             } else {
-                // manual: only run local; others must run /keygen-local themselves
-                MixnetCommon.keygenLocal(c.baseDir, 1);
+                // manual: pode usar também o modo detached para manter consistência
+                MixnetCommon.startKeygenDetached(c.baseDir, 1);
+                // os outros nós devem chamar /guardian/keygen-local-async localmente
             }
+
+            // 3) orquestrador aguarda *apenas* o arquivo do nó 1 (suficiente p/ saber que terminou)
+            File pk1 = new File(c.baseDir + "/01/publicKey");
+            boolean ok = MixnetCommon.waitForFile(pk1, 10 * 60 * 1000L); // timeout 10min
+            if (!ok) {
+                File log = new File(c.baseDir + "/01/vmn.log");
+                throw new RuntimeException("Timeout aguardando keygen no nó 1. Ver log: " + log.getAbsolutePath());
+            }
+
+            // (opcional) já converte e deixa pronto pro front
+            NativeConverters.ensureGuardianPublicKeyNative(c.baseDir);
 
             return Map.of("status", "Keygen complete (" + (c.auto ? "auto" : "manual") + ")");
         } catch (Exception e) {
@@ -144,6 +169,19 @@ public class GuardianMixnetController {
         return MixnetCommon.keygenLocal(cfg().baseDir, serverId);
     }
 
+    @PostMapping("/keygen-local-async")
+    public Map<String, String> keygenLocalAsync(@RequestParam int serverId) {
+        try {
+            // libera portas desse nó antes de iniciar
+            VerificatumCleaner.freeGuardianServer(serverId);
+            MixnetCommon.startKeygenDetached(cfg().baseDir, serverId);
+            return Map.of("status", "keygen started (server " + serverId + ")");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Map.of("error", e.getMessage());
+        }
+    }
+
     /* =====================
        DECRYPT
        ===================== */
@@ -153,55 +191,83 @@ public class GuardianMixnetController {
             GuardianConfig c = cfg();
             ensureSetupConfigured(c);
 
+            // libera portas do nó 1 antes de começar
+            VerificatumCleaner.freeGuardianServer(1);
+
             if (c.auto) {
-                // local
-                MixnetCommon.decryptLocal(c.baseDir, 1);
-                // remotes
+                // 1) inicia local (nó 1) em background
+                MixnetCommon.startDecryptDetached(c.baseDir, 1);
+
+                // 2) inicia remotos em background via SSH
                 for (int id = 2; id <= c.numServers; id++) {
                     String remote = c.servers.get(id - 2);
-                    String cmd = "curl -sS -X POST http://localhost:8080/guardian/decrypt-local"
+                    String cmd = "curl -sS -X POST http://localhost:8080/guardian/decrypt-local-async"
                             + " -d 'serverId=" + id + "'";
                     RemoteExecutor.executeSSH(remote, cmd);
                 }
             } else {
-                // manual: only run local; others must run /decrypt-local themselves
-                MixnetCommon.decryptLocal(c.baseDir, 1);
+                // Manual: dispara só o local; demais nós devem chamar /decrypt-local-async por conta própria
+                MixnetCommon.startDecryptDetached(c.baseDir, 1);
             }
 
-            // Return Guardian 1 result as multipart (plaintexts.native)
+            // 3) orquestrador aguarda o artefato do nó 1
             File dir01 = new File(c.baseDir + "/01");
-            File logs = new File(c.baseDir + "/logs");
-            logs.mkdirs();
+            File plaintexts = new File(dir01, "plaintexts");
+            boolean ok = MixnetCommon.waitForFile(plaintexts, 10 * 60 * 1000L); // timeout 10 min
+            if (!ok) {
+                File log = new File(dir01, "vmn.log");
+                return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body(errorBody(
+                        "Timeout aguardando decrypt no nó 1. Veja o log: " + log.getAbsolutePath()));
+            }
 
+            // 4) converte para nativo e devolve (como já fazíamos)
             MixnetCommon.run(dir01, "vmnc", "-plain", "-outi", "native",
                     "protInfo.xml", "plaintexts", "plaintexts.native");
 
             File nativeFile = new File(dir01, "plaintexts.native");
-            Files.copy(nativeFile.toPath(), new File(logs, "plaintexts.native").toPath(),
-                    StandardCopyOption.REPLACE_EXISTING);
 
-            MultiValueMap<String, Object> resp = new LinkedMultiValueMap<>();
-            resp.add("file", new FileSystemResource(nativeFile));
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", new FileSystemResource(nativeFile));
+
             return ResponseEntity.ok()
                     .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(resp);
+                    .body(body);
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody(e.getMessage()));
         }
     }
+
+    private MultiValueMap<String, Object> errorBody(String msg) {
+        MultiValueMap<String, Object> m = new LinkedMultiValueMap<>();
+        m.add("error", msg);
+        return m;
+    }
+
 
     @PostMapping("/decrypt-local")
     public Map<String, String> decryptLocal(@RequestParam int serverId) {
         return MixnetCommon.decryptLocal(cfg().baseDir, serverId);
     }
 
+    @PostMapping("/decrypt-local-async")
+    public Map<String, String> decryptLocalAsync(@RequestParam int serverId) {
+        try {
+            // libera portas deste nó antes de iniciar
+            VerificatumCleaner.freeGuardianServer(serverId);
+            MixnetCommon.startDecryptDetached(cfg().baseDir, serverId);
+            return Map.of("status", "decrypt started (server " + serverId + ")");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Map.of("error", e.getMessage());
+        }
+    }
+
     @GetMapping("/public-key")
     public ResponseEntity<FileSystemResource> getPublicKeyNative() {
         try {
-            String baseDir = "verificatum-guardian"; // or GuardianConfig.get().baseDir if you already have it
-            File nativePk = NativeConverters.ensureGuardianPublicKeyNative(baseDir);
+            File nativePk = NativeConverters.ensureGuardianPublicKeyNative(GuardianConfig.get().baseDir);
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=publicKey.native")
@@ -224,51 +290,85 @@ public class GuardianMixnetController {
         if (c.auto) c.validateForAuto();
     }
 
-    // Pull protInfo0X.xml from remotes into Guardian 1
+    // Helper simples para detectar "localhost"
+    private boolean isLocalHost(String remote) {
+        if (remote == null) return false;
+        // formatos típicos: "user@127.0.0.1", "user@localhost", "127.0.0.1", "localhost"
+        String host = remote.contains("@") ? remote.substring(remote.indexOf("@") + 1) : remote;
+        host = host.trim();
+        return "127.0.0.1".equals(host) || "localhost".equalsIgnoreCase(host);
+    }
+
+    // Pull protInfoXX.xml from remotes into Guardian 1
     private void collectProtInfos() throws Exception {
         GuardianConfig c = cfg();
         for (int id = 2; id <= c.numServers; id++) {
             String remote = c.servers.get(id - 2);
-            String remotePath = c.baseDir + "/0" + id + "/protInfo0" + id + ".xml";
+            String fileName = String.format("protInfo%02d.xml", id);
+
+            // Em cada remoto, esperamos em: <baseDir>/0{id}/protInfoXX.xml
+            String remotePath = c.baseDir + "/0" + id + "/" + fileName;
+
+            // No orquestrador, guardamos em: <baseDir>/0{id}/protInfoXX.xml
             File localDir = new File(c.baseDir + "/0" + id);
             localDir.mkdirs();
-            String localPath = localDir.getPath() + "/protInfo0" + id + ".xml";
-            RemoteExecutor.scpFrom(remote, remotePath, localPath);
+            String localPath = new File(localDir, fileName).getPath();
+
+            if (isLocalHost(remote)) {
+                // Mesmo host: nada a copiar via scp; apenas verifique se existe
+                File f = new File(localPath);
+                if (!f.exists()) {
+                    // Se por algum motivo o setup-local escreveu em outro lugar, tente copiar localmente
+                    // Mas como o caminho é o mesmo, normalmente não precisa fazer nada aqui.
+                    throw new IllegalStateException("Arquivo esperado não existe localmente: " + localPath);
+                }
+            } else {
+                // Host remoto de verdade: SCP
+                RemoteExecutor.scpFrom(remote, remotePath, localPath);
+            }
         }
-        // Ensure our own file exists locally already (01)
-        // (generated by setupLocal)
+        // O arquivo do próprio Guardian 1 é <baseDir>/01/protInfo01.xml (já criado no setup-local)
     }
 
-    // Send all protInfo0X.xml to every server (including local)
+    // Send all protInfoXX.xml to every server (including local)
     private void distributeProtInfos() throws Exception {
         GuardianConfig c = cfg();
 
-        // Prepare local source files (Guardian 1 has all after collect)
+        // 1) Colete as fontes locais (depois do collect, Guardian 1 tem todos)
         Map<Integer, File> src = new HashMap<>();
         for (int k = 1; k <= c.numServers; k++) {
-            File f = new File(c.baseDir + "/0" + k + "/protInfo0" + k + ".xml");
+            String fileName = String.format("protInfo%02d.xml", k);
+            File f = new File(c.baseDir + "/0" + k + "/" + fileName);
             if (!f.exists()) {
-                throw new IllegalStateException("Missing file on orchestrator: " + f.getPath());
+                throw new IllegalStateException("Falta arquivo no orquestrador: " + f.getPath());
             }
             src.put(k, f);
         }
 
-        // 1) Copy into local /0j for j=1
+        // 2) Copie para o próprio Guardian 1 (destino: <baseDir>/01/protInfoXX.xml)
+        File dir01 = new File(c.baseDir + "/01");
+        dir01.mkdirs();
         for (int k = 1; k <= c.numServers; k++) {
-            File dst = new File(c.baseDir + "/01/protInfo0" + k + ".xml");
-            Files.copy(src.get(k).toPath(), dst.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            File dst = new File(dir01, String.format("protInfo%02d.xml", k));
+            Files.copy(src.get(k).toPath(), dst.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         }
 
-        // 2) Copy to each remote j=2..N
+        // 3) Copie para cada remoto j = 2..N (destino: <baseDir>/0{j}/protInfoXX.xml)
         for (int j = 2; j <= c.numServers; j++) {
             String remote = c.servers.get(j - 2);
-            // ensure remote /0j exists (it does after setup-local)
             for (int k = 1; k <= c.numServers; k++) {
-                RemoteExecutor.scpTo(
-                        src.get(k).getPath(),
-                        remote,
-                        c.baseDir + "/0" + j + "/protInfo0" + k + ".xml"
-                );
+                String fileName = String.format("protInfo%02d.xml", k);
+                String remoteDest = c.baseDir + "/0" + j + "/" + fileName;
+
+                if (isLocalHost(remote)) {
+                    // Mesmo host: é só copiar localmente
+                    File localDstDir = new File(c.baseDir + "/0" + j);
+                    localDstDir.mkdirs();
+                    File localDst = new File(localDstDir, fileName);
+                    Files.copy(src.get(k).toPath(), localDst.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    RemoteExecutor.scpTo(src.get(k).getPath(), remote, remoteDest);
+                }
             }
         }
     }

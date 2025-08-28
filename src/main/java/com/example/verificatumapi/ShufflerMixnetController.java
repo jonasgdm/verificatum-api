@@ -24,7 +24,7 @@ public class ShufflerMixnetController {
     @PostMapping("/setup")
     public Map<String, String> setup(@RequestParam("publicKeyUrl") String keyUrl) {
         try {
-            MixnetCommon.killAllHintPorts(4040, 4060);
+            VerificatumCleaner.resetShuffler(BASE_DIR, NUM_SERVERS);
             MixnetCommon.cleanAndPrepareBase(BASE_DIR, NUM_SERVERS);
 
             // Step 1: Download publicKeyNative
