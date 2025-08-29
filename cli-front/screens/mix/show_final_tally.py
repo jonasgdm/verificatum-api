@@ -1,15 +1,14 @@
 # final_tally.py
 import os
+import readchar
 from collections import Counter, defaultdict
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.align import Align
 
-try:
-    import readchar  # pip install readchar
-except ImportError:
-    raise SystemExit("Instale a dependência: pip install readchar")
+TALLY_PATH = "output/tally.json"
+
 
 console = Console()
 DIGITS_POR_CARGO = {
@@ -128,15 +127,8 @@ def _mostrar_resumo_global(orig_por_cargo, desc_por_cargo):
     )
 
 
-def mostrar_apuracao_final(tally_json):
-    """
-    Tela de apuração com 'abas' navegáveis:
-      ← →  : troca de aba
-      espaço: próxima aba
-      G    : resumo global
-      Q    : sair
-    """
-    print(tally_json)
+def show(_=None):
+
     if not os.path.exists(DECRYPT_PATH):
         console.print(
             "[bold red]Arquivo não encontrado:[/bold red] 'decrypted/decrypted.native'"

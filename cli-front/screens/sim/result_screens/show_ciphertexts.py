@@ -13,7 +13,7 @@ def _shorten(cipher: str) -> str:
     return cipher[:60]
 
 
-def paginar_votos(path="output/gavt.json", por_pagina=5):
+def paginar_votos(path="output/gavt.json", por_pagina=20):
     with open(path, "r") as f:
         votos = json.load(f)
 

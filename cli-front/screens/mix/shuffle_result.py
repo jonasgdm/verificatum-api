@@ -10,7 +10,7 @@ from rich.console import Group
 from services import verificatum_api, flask_api
 from utils import log_parser
 
-from screens.mix import show_ciphertexts
+from screens.mix.result_screens import show_ciphertexts
 
 console = Console()
 
@@ -63,7 +63,7 @@ def render_summary_tables(summary: dict):
     return Group(t_tempos, t_comm, t_proof)
 
 
-def show():
+def show(_=None):
     tabs = ["Log", "Ciphertexts"]
     idx = 0  # aba ativa
 
@@ -109,4 +109,4 @@ def show():
         elif key in ("d", " ") and tabs[idx] == "Ciphertexts":
             page += 1
         elif key in ("q", "Q", readchar.key.ESC):
-            break
+            return "mix.single_shuffle", None

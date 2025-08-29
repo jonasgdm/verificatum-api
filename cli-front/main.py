@@ -10,7 +10,7 @@ from screens.sim import (
     setup,
     sim_menu,
 )
-from screens.mix import shuffle_setup
+from screens.mix import shuffle_setup, single_shuffle, shuffle_result, show_final_tally
 
 
 def main():
@@ -24,9 +24,12 @@ def main():
     router.ROUTES["sim.mock"] = mock.show
     router.ROUTES["sim.result"] = result.show
 
-    router.ROUTES["mix.setup"] = shuffle_setup.show
+    router.ROUTES["mix.shuffle_setup"] = shuffle_setup.show
+    router.ROUTES["mix.single_shuffle"] = single_shuffle.show
+    router.ROUTES["mix.shuffle_result"] = shuffle_result.show
+    router.ROUTES["mix.show_final_tally"] = show_final_tally.show
 
-    router.run("sim.result")
+    router.run("home")
 
 
 if __name__ == "__main__":

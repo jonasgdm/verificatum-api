@@ -19,6 +19,10 @@ def get_log():
     return _get("/shuffler/log")
 
 
+def decrypt():
+    return _post("/guardian/decrypt")
+
+
 def get_shuffled():
     return _get("/shuffler/shuffled-ciphertexts")
 

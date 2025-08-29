@@ -1,77 +1,62 @@
 from rich.console import Console
-from rich.panel import Panel
-from rich.columns import Columns
-from rich.spinner import Spinner
-from rich.live import Live
-import questionary
-import requests
+
 from utils.electionConfig_parser import load_election_config
 from services.verificatum_api import _post
-from screens.mix import single_shuffle
 
-# from screens import home, shuffle
+from ui.panel import shell
+from ui.prompt import select
+from ui.spinner import run_with_spinner
+
+from screens.mix import show_election_configs
+
 
 console = Console()
 
 
-def show():
+def show(_=None):
     config = load_election_config()
     if not config:
         console.print(
             "[bold red]Arquivo electionConfig.json não encontrado.[/bold red]"
         )
-        return
-
-    elections = config["options"]
+        input("Voltando...")
+        return "home", None
 
     console.clear()
-    console.print(
-        Panel.fit(
-            "[white]"
-            "Os votos cifrados agora serão embaralhados para garantir o anonimato.\n\n"
-            "Isso impede que se descubra a ordem em que chegaram ou quem votou em quem. "
-            "Usamos uma rede com múltiplos servidores para executar essa etapa de forma segura, reutilizando a mesma chave pública usada na cifragem.\n\n"
-            "Após o embaralhamento, os votos embaralhados seguem para a próxima fase da apuração.\n"
-            "[/white]",
-            title="[bold blue]Etapa de Embaralhamento (Mixnet)[/bold blue]",
-            border_style="blue",
-            width=80,
-        )
-    )
-    console.print(
-        Panel(
-            f"[bold]Eleições Ativas:[/bold] {len(elections)}\n"
-            f"[bold]Total de votos:[/bold] {config['anyVotes'] + config['conventionalVotes'] + config['doubleVotes']}\n"
-            f"[bold]AnyVotes:[/bold] {config['anyVotes']}\n"
-            f"[bold]Duplicados:[/bold]{config['doubleVotes']}\n",
-            title="Resumo Geral",
-            width=80,
-        )
-    )
-    escolha = questionary.select(
+    title = "[bold blue]Etapa de Embaralhamento (Mixnet)[/bold blue]"
+    txt = """[white]
+Os votos cifrados agora serão embaralhados para garantir o anonimato.
+
+Isso impede que se descubra a ordem em que chegaram ou quem votou em quem.
+Usamos uma rede com múltiplos servidores para executar essa etapa de forma segura, reutilizando a mesma chave pública usada na cifragem.
+
+Após o embaralhamento, os votos embaralhados seguem para a próxima fase da apuração.
+[/white]"""
+    console.print(shell(title, txt))
+    console.print(show_election_configs.build_config_panel())
+
+    escolha = select(
         "Iniciar :",
         choices=["1. Configurar Rede de Mixagem", "[↩ VOLTAR]"],
-    ).ask()
+    )
 
-    if escolha.startswith("1. "):
-        spinner = Spinner("dots", text="Configurando rede de mistura...")
-        with Live(spinner, refresh_per_second=10, transient=True):
-            response = _post(
+    if escolha.startswith("1"):
+        response = run_with_spinner(
+            lambda: _post(
                 "/shuffler/setup?publicKeyUrl=http://localhost:8080/guardian/public-key"
-            )
-
+            ),
+            text="Configurando rede de mistura...",
+        )
         if response and response.get("status") == "Shuffler setup complete":
             console.print(
                 "\n[bold green]✓ Rede de mistura devidamente configurada![/bold green]\n"
             )
             input("[CONTINUAR]")
-            return single_shuffle.show()
+            return "mix.single_shuffle", None
         else:
-            return False
+            console.print("[red]Erro ao inicializar o Shuffler[/red]")
+            input("Voltando...")
+            return "home", None
 
     elif escolha == "[↩ VOLTAR]":
-        return home.show()
-
-    else:
-        console.print("\n[bold red]Erro na geração da chave com /keygen[/bold red]")
-        return False
+        return "home", None
