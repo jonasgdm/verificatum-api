@@ -5,7 +5,7 @@ def select(title: str, choices: list[str]):
     return questionary.select(title, choices=choices).ask()
 
 
-def text(title: str, validate_int: bool = False, default: str | None = None):
+def input_text(title: str, validate_int: bool = False, default: str | None = None):
     if validate_int:
         return questionary.text(
             title,

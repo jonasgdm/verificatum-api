@@ -5,13 +5,18 @@ DEFAULT_WIDTH = 90
 DEFAULT_BORDER = "cyan"
 
 
-def shell(title: str, body: str, width: int = DEFAULT_WIDTH):
-    txt = f"[bold cyan]{title}[/bold cyan]\n\n{body}"
+def shell(
+    title: str,
+    body: str,
+    width: int = DEFAULT_WIDTH,
+    border_style: str = DEFAULT_BORDER,
+):
     return Panel(
-        Align.center(txt, vertical="middle"),
+        Align.center(body, vertical="middle"),
+        title=f"[bold cyan]{title}[/bold cyan]",
         width=width,
         padding=(1, 4),
-        border_style=DEFAULT_BORDER,
+        border_style=border_style,
     )
 
 

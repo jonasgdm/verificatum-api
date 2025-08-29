@@ -29,14 +29,14 @@ def render(console, orig_path: str, shuf_path: str, page: int, per_page: int):
     # Texto explicativo
     explanation = (
         "[white]\n"
-        "• Cada ciphertext da coluna [cyan]Antes[/cyan] corresponde a um voto cifrado na ordem original.\n"
-        "• A mixnet aplica uma [bold]permutação criptograficamente verificada[/bold], embaralhando toda a lista.\n"
+        "• Cada ciphertext da coluna [cyan]Antes[/cyan] corresponde a um voto cifrado na ordem original.\n\n"
+        "• A mixnet aplica uma [bold]permutação criptograficamente verificada[/bold], embaralhando toda a lista.\n\n"
         "• Durante o shuffle ocorre [bold]re-encriptação[/bold]: cada ciphertext muda de forma,\n"
-        "   mas continua matematicamente equivalente ao original.\n"
+        "   mas continua matematicamente equivalente ao original.\n\n"
         "• Uma prova de correção ([italic]zero-knowledge proof[/italic]) atesta que a saída é\n"
-        "   apenas uma permutação re-encriptada da entrada.\n"
+        "   apenas uma permutação re-encriptada da entrada.\n\n"
         "• Isso preserva [bold green]integridade[/bold green] e [bold magenta]anonimato[/bold magenta],\n"
-        "   impossibilitando ligar posições iniciais às finais.\n"
+        "   impossibilitando ligar posições iniciais às finais.\n\n"
         "[/white]"
     )
     panel = Panel(
@@ -51,8 +51,8 @@ def render(console, orig_path: str, shuf_path: str, page: int, per_page: int):
         header_style="bold cyan",
     )
     table.add_column("Idx", justify="right", width=6)
-    table.add_column("Antes (origem)")
-    table.add_column("Depois (shuffle)")
+    table.add_column("Antes de misturar")
+    table.add_column("Depois de misturar")
 
     for i in range(start, end):
         table.add_row(str(i + 1), _abbrev(orig_list[i]), _abbrev(shuf_list[i]))

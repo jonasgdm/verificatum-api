@@ -39,10 +39,10 @@ def render_summary_tables(summary: dict):
     t_tempos.add_column("ms", justify="right")
 
     t_tempos.add_row("Execução total", str(summary.get("execution_ms", "-")))
-    t_tempos.add_row("Tempo de rede (troca msgs)", str(summary.get("network_ms", "-")))
-    t_tempos.add_row("Tempo efetivo", str(summary.get("effective_ms", "-")))
-    t_tempos.add_row("Idle (espera)", str(summary.get("idle_ms", "-")))
-    t_tempos.add_row("Computação (CPU)", str(summary.get("computation_ms", "-")))
+    t_tempos.add_row("Tempo de Rede", str(summary.get("network_ms", "-")))
+    t_tempos.add_row("Tempo Ffetivo", str(summary.get("effective_ms", "-")))
+    t_tempos.add_row("Tempo de Espera", str(summary.get("idle_ms", "-")))
+    t_tempos.add_row("Tempo de Computação", str(summary.get("computation_ms", "-")))
 
     # Tabela de comunicação
     comm = summary.get("communication", {})
