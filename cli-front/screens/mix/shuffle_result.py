@@ -66,6 +66,7 @@ def render_summary_tables(summary: dict):
 
 
 def show(payload):
+
     tabs = ["Ciphertexts", "Log"]
     idx = 0  # aba ativa
 
@@ -83,6 +84,7 @@ def show(payload):
         input("\nPressione Enter para continuar...")
         return "mix.single_shuffle", None
 
+    os.makedirs("input", exist_ok=True)  # cria a pasta se não existir
     with open("input/not_shuffled.txt", "w") as f:
         f.write(ciphertextss)
     with open("input/shuffled.txt", "w") as f:
