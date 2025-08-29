@@ -10,7 +10,13 @@ from screens.sim import (
     setup,
     sim_menu,
 )
-from screens.mix import shuffle_setup, single_shuffle, shuffle_result, show_final_tally
+from screens.mix import (
+    shuffle_setup,
+    single_shuffle,
+    shuffle_result,
+    show_final_tally,
+    show_ciphertexts,
+)
 
 
 def main():
@@ -28,6 +34,7 @@ def main():
     router.ROUTES["mix.single_shuffle"] = single_shuffle.show
     router.ROUTES["mix.shuffle_result"] = shuffle_result.show
     router.ROUTES["mix.show_final_tally"] = show_final_tally.show
+    # router.ROUTES["mix.show_ciphertexts"] = show_ciphertexts.show
 
     router.run("home")
 

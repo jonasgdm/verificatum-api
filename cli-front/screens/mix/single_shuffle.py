@@ -8,13 +8,12 @@ from services.flask_api import _post
 from services import verificatum_api
 from requests_toolbelt.multipart import decoder
 from utils.electionConfig_parser import load_election_config
-from screens.mix import show_election_configs
-from screens.mix.result_screens import show_ciphertexts
 
 from ui.panel import shell, shell_variant_2
 from ui.prompt import select
 from ui.spinner import run_with_spinner
 
+from screens.mix import show_election_configs
 
 console = Console()
 
@@ -25,6 +24,7 @@ os.makedirs(DECRYPT_DIR, exist_ok=True)
 
 
 def show(_=None):
+    decrypted = False
     config = load_election_config()
     if not config:
         console.print(
@@ -58,14 +58,19 @@ def show(_=None):
             choices=[
                 "1. Executar Shuffle (misturar)",
                 "2. Decifrar Votos",
-                "3. Apuração Final",
-                "4. Sair",
+                "3. Visualizar Shuffle",
+                "4. Apuração Final",
+                "0. Sair",
             ],
         )
 
         if escolha.startswith("1"):
             run_with_spinner(lambda: execute_shuffle())
-            return "mix.shuffle_result", None
+            console.print(
+                f"\n[bold green]✓ Shuffle Conclu[ido].[/bold green]\n"
+                "Vá para 'Visualizar Shuffle' e visualize o embaralhamento\n "
+            )
+            input("\nPressione Enter para continuar...")
 
         elif escolha.startswith("2."):
             run_with_spinner(lambda: execute_decrypt())
@@ -74,12 +79,16 @@ def show(_=None):
                 "O arquivo foi salvo em 'decrypted/decrypted.native'.\n "
                 "Agora vá para [bold]Apuração Final[/bold] para ver os resultados.\n"
             )
+            decrypted = True
             input("\nPressione Enter para continuar...")
 
         elif escolha.startswith("3."):
-            show_final_tally()
+            return "mix.shuffle_result", None
 
         elif escolha.startswith("4."):
+            return "mix.show_final_tally", decrypted
+
+        elif escolha.startswith("0."):
             return "home", None
 
 

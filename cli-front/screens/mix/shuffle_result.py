@@ -10,7 +10,9 @@ from rich.console import Group
 from services import verificatum_api, flask_api
 from utils import log_parser
 
-from screens.mix.result_screens import show_ciphertexts
+from screens.mix import show_ciphertexts
+
+from ui.panel import error
 
 console = Console()
 
@@ -63,15 +65,23 @@ def render_summary_tables(summary: dict):
     return Group(t_tempos, t_comm, t_proof)
 
 
-def show(_=None):
-    tabs = ["Log", "Ciphertexts"]
+def show(payload):
+    tabs = ["Ciphertexts", "Log"]
     idx = 0  # aba ativa
 
     log = verificatum_api.get_log()
+
     summary = log_parser.parse_shuffle_summary(log)
 
     ciphertextss = flask_api._get("/GAVT")
     shuffled = verificatum_api.get_shuffled()
+    if not shuffled:
+        console.clear()
+        console.print(
+            error("Nenhum shuffle encontrado.\nExecute o shuffle antes de visualizar.")
+        )
+        input("\nPressione Enter para continuar...")
+        return "mix.single_shuffle", None
 
     with open("input/not_shuffled.txt", "w") as f:
         f.write(ciphertextss)

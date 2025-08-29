@@ -1,5 +1,6 @@
 # final_tally.py
 import os
+import json
 import readchar
 from collections import Counter, defaultdict
 from rich.console import Console
@@ -129,11 +130,15 @@ def _mostrar_resumo_global(orig_por_cargo, desc_por_cargo):
 
 def show(_=None):
 
+    with open("output/tally.json", "r", encoding="utf-8") as f:
+        tally_json = json.load(f)
+
     if not os.path.exists(DECRYPT_PATH):
         console.print(
             "[bold red]Arquivo não encontrado:[/bold red] 'decrypted/decrypted.native'"
         )
-        return
+        input("\nPressione Enter para continuar...")
+        return "mix.single_shuffle"
 
     # 1) Ler plaintexts
     with open(DECRYPT_PATH, "r", encoding="utf-8") as f:
@@ -213,4 +218,4 @@ def show(_=None):
             console.print("\n[dim]Pressione qualquer tecla para voltar...[/dim]")
             readchar.readkey()
         elif key in ("q", "Q", readchar.key.ESC):
-            break
+            return "mix.single_shuffle", None
