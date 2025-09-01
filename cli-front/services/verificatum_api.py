@@ -4,7 +4,7 @@ BASE_URL = "http://localhost:8080"
 
 
 def post_setup(payload=None):
-    return _post("/guardian/setup", payload)
+    return _post("/guardian/setup?auto=true&numServers=3", payload)
 
 
 def post_keygen(payload=None):
