@@ -1,4 +1,4 @@
-from screens import home
+from screens import home, benchmark
 from app import router
 
 from screens.sim import (
@@ -35,6 +35,8 @@ def main():
     router.ROUTES["mix.shuffle_result"] = shuffle_result.show
     router.ROUTES["mix.show_final_tally"] = show_final_tally.show
     # router.ROUTES["mix.show_ciphertexts"] = show_ciphertexts.show
+
+    router.ROUTES["benchmark"] = benchmark.show
 
     router.run("home")
 

@@ -19,6 +19,8 @@ class MockElection:
         self.public_key_str = public_key_str
         self.config = election_config
         self.election_id = election_id
+        self.pending_plaintexts = []
+        self.vote_slices = []
 
         self.cargo_ids = {
             "prefeito": "01",
@@ -68,16 +70,22 @@ class MockElection:
             contestID = self.cargo_ids.get(contest, "00")
             pts.append(build_plaintext(self.election_id, contestID, escolhido))
 
-        encrypted_votes = self.encryptor.encrypt_batch(pts)
+        start = len(self.pending_plaintexts)
+        self.pending_plaintexts.extend(pts)
+        end = len(self.pending_plaintexts)
+
+        # encrypted_votes = self.encryptor.encrypt_batch(pts)
+
         any_vote = {
             "tokenID": tokenid,
-            "encryptedVotes": encrypted_votes,
+            "encryptedVotes": None,
             "metadata": {
                 "hasBiometry": True,
                 "votingMachineID": random.randint(1, self.config["numberBallots"]),
             },
         }
         self.gavt.append(any_vote)
+        self.vote_slices.append((start, end))  # <- slice guardado separado
         return any_vote
 
     def generate_conventional_vote(self):
@@ -92,13 +100,15 @@ class MockElection:
         self.rdv.append(voto)
 
     def simulate(self):
+        self.pending_plaintexts = []
         total_plaintexts = 0
-        start = time.time()
+        start_clk = time.time()
         # Gera votos cifrados (anyVotes)
         for _ in range(self.config.get("anyVotes")):
             tokenid = str(uuid.uuid4())
             vote = self.gen_any_vote(tokenid)
-            total_plaintexts += len(vote["encryptedVotes"])
+            start, end = self.vote_slices[-1]  # pega o slice recém-adicionado
+            total_plaintexts += end - start
 
         # Gera votos convencionais (não cifrados)
         for _ in range(self.config.get("conventionalVotes")):
@@ -106,10 +116,13 @@ class MockElection:
 
         # Gera votos duplicados (anyVotes com mesmo token)
         for _ in range(self.config.get("doubleVotes")):
-            v = self.double_vote()
-            total_plaintexts += len(v["encryptedVotes"])
+            self.double_vote()
+            start, end = self.vote_slices[-1]
+            total_plaintexts += end - start
 
-        elapsed = time.time() - start
+        self.finalize_encryption()
+
+        elapsed = time.time() - start_clk
         print(f"> {total_plaintexts} plaintexts cifrados em {elapsed:.2f} segundos")
 
         self.export_gavt("json")
@@ -169,3 +182,10 @@ class MockElection:
         path = os.path.join("output", "tally.json")
         with open(path, "w", encoding="utf-8") as f:
             json.dump(self.tally, f, ensure_ascii=False, indent=2)
+
+    def finalize_encryption(self):
+        all_enc = self.encryptor.encrypt_batch(self.pending_plaintexts)
+        for (start, end), v in zip(self.vote_slices, self.gavt):
+            v["encryptedVotes"] = all_enc[start:end]
+        self.pending_plaintexts = []
+        self.vote_slices = []

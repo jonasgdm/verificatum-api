@@ -9,6 +9,7 @@ function ok(obj) { process.stdout.write(JSON.stringify({ ok: true, ...obj }) + "
 function err(id, e) { process.stdout.write(JSON.stringify({ ok: false, id, error: String(e && e.stack || e) }) + "\n"); }
 
 rl.on("line", (line) => {
+
     let msg; try { msg = JSON.parse(line); } catch { return; }
     try {
         if (msg.type === "init") {
@@ -18,6 +19,7 @@ rl.on("line", (line) => {
             const hex = encryptOnce(msg.value);
             ok({ type: "enc", id: msg.id, hex });
         } else if (msg.type === "enc_batch") {
+            console.error("PID", process.pid, "encrypting batch of", (msg.values || []).length);
             const start = Date.now();
             const hex_list = (msg.values || []).map(v => encryptOnce(v));
             const elapsed = (Date.now() - start) / 1000; // segundos
