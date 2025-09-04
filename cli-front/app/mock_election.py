@@ -189,3 +189,50 @@ class MockElection:
             v["encryptedVotes"] = all_enc[start:end]
         self.pending_plaintexts = []
         self.vote_slices = []
+
+    def generate_plaintexts(self, num_votes: int):
+        """
+        Gera apenas plaintexts de anyVotes, sem cifrar.
+        Salva em self.pending_plaintexts e registra em self.gavt para depois poder cifrar.
+        """
+        self.pending_plaintexts = []
+        self.vote_slices = []
+        self.gavt = []  # limpa gavt também, já que vamos povoar de novo
+
+        for _ in range(num_votes):
+            tokenid = str(uuid.uuid4())
+            pts = []
+            for contest, codes in self.candidate_codes.items():
+                if not codes:
+                    continue
+                escolhido = random.choice(codes)
+                self.tally[contest][escolhido] += 1
+                contestID = self.cargo_ids.get(contest, "00")
+                pts.append(build_plaintext(self.election_id, contestID, escolhido))
+
+            start = len(self.pending_plaintexts)
+            self.pending_plaintexts.extend(pts)
+            end = len(self.pending_plaintexts)
+
+            any_vote = {
+                "tokenID": tokenid,
+                "encryptedVotes": None,
+                "metadata": {
+                    "hasBiometry": True,
+                    "votingMachineID": random.randint(1, self.config["numberBallots"]),
+                },
+            }
+            self.gavt.append(any_vote)
+
+            self.vote_slices.append((start, end))
+
+        return len(self.pending_plaintexts)  # retorna total de plaintexts gerados
+
+    def export_ciphertexts_only(self, path="output/bench_ciphertexts"):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        print(path)
+        with open(path, "w", encoding="utf-8") as f:
+            for voto in self.gavt:
+                # cada voto pode ter mais de 1 ciphertext
+                for c in voto["encryptedVotes"]:
+                    f.write(c + "\n")
