@@ -39,7 +39,7 @@ def show(_=None):
 
     response = run_with_spinner(lambda: post_keygen())
 
-    if response and response.get("status") == "Keygen complete":
+    if response and response.get("status").startswith("Keygen complete"):
         console.print("\n[bold green]✓ Keygen concluído com sucesso![/bold green]\n")
         chave = get_publickey()
 

@@ -1,10 +1,12 @@
 import requests
+import getpass
 
 BASE_URL = "http://localhost:8080"
 
 
 def post_setup():
-    payload = {"servers": ["$USER@127.0.0.1", "$USER@127.0.0.1"]}
+    username = getpass.getuser()
+    payload = {"servers": [f"{username}@127.0.0.1", f"{username}@127.0.0.1"]}
     return _post("/guardian/setup?auto=true&numServers=3", payload)
 
 

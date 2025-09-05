@@ -3,3 +3,4 @@ questionary
 requests
 requests-toolbelt
 readchar
+getpass

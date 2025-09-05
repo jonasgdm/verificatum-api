@@ -39,7 +39,7 @@ Ao final, todos os nós terão uma configuração sincronizada, pronta para exec
 
     if escolha.startswith("1"):
         response = run_with_spinner(lambda: post_setup())
-        if response and response.get("status") == "Setup complete":
+        if response and response.get("status").startswith("Setup complete"):
             console.print(
                 "\n[bold green]✓ Infraestrutura inicializada com sucesso.[/bold green]\n"
             )
