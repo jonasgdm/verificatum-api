@@ -1,14 +1,14 @@
-from rich.panel import Panel
-from rich.align import Align
 from rich.console import Console
 
-from screens.sim import sim_menu
+from ui.panel import shell
+
 
 console = Console()
 
 
-def show():
+def show(_=None):
     console.clear()
+    title = "[bold blue]Visão Geral – Por que usar Mixnets?[/bold blue]"
     intro_text = """
 [white]Este sistema demonstra como é possível garantir anonimato e integridade em eleições digitais mesmo com mobilidade de eleitores.[/white]
 
@@ -17,13 +17,6 @@ def show():
 [bold]Solução proposta:[/bold] Utilizamos uma arquitetura baseada em mixnets criptográficas (redes de embaralhamento) para quebrar a associação entre voto cifrado e ordem de chegada, preservando o anonimato do eleitor.
 """
 
-    painel_introducao = Panel(
-        Align.left(intro_text),
-        title="[bold blue]Visão Geral – Por que usar Mixnets?[/bold blue]",
-        border_style="blue",
-        width=100,
-        padding=(1, 4),
-    )
-    console.print(painel_introducao)
+    console.print(shell(title, intro_text))
     input("[CONTINUAR]")
-    sim_menu.show()
+    return "sim.sim_menu", None

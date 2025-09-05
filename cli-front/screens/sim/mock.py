@@ -1,30 +1,18 @@
-# screens/mock.py
-
-import os
-from rich import print
-from rich.panel import Panel
-from rich.console import Console
-from rich.live import Live
-from rich.spinner import Spinner
-from rich.table import Table
-from rich.align import Align
-
-import questionary
 import json
-from services.MockElection import MockElection
-
-# from utils.protinfo_parser import load_file
+from rich import print
+from rich.console import Console
 
 from services import flask_api
 from services.verificatum_api import get_publickey
-
-from screens.mix import shuffle_setup
-from screens.sim import result
-
-# from services.mock_vote_service import (
-#     generate_mock_votes,
-# )  # serviço que você irá implementar
 from utils.electionConfig_parser import load_election_config
+from app.mock_election import MockElection
+from infra.encryptors.node_daemon import NodeDaemonEncryptor
+
+from ui.panel import shell
+from ui.prompt import input_text, select
+from ui.spinner import run_with_spinner
+from ui.table import simple
+
 
 CONFIG_PATH = "electionConfig.json"
 console = Console()
@@ -36,76 +24,54 @@ def update_config(any_votes, double_votes):
 
     config["anyVotes"] = any_votes
     config["doubleVotes"] = double_votes
-    # config["type"] = type
-
-    # if type == "Municipal":
-    #     for cargo in config.get("options", []):
-    #         if cargo["contest"] not in ["vereador", "prefeito"]:
-    #             cargo["candidates"] = 0
-    # else:  # Tipo "Geral"
-    #     for cargo in config.get("options", []):
-    #         if cargo["contest"] in ["vereador", "prefeito"]:
-    #             cargo["candidates"] = 0
-    #         else:
-    #             cargo["candidates"] = 2
 
     with open(CONFIG_PATH, "w") as f:
         json.dump(config, f, indent=4)
 
 
 def vote_params():
-    any_votes = questionary.text(
+    any_votes = input_text(
         "Quantos AnyVotes deseja gerar?",
+        validate_int=lambda val: val.isdigit() and int(val) >= 0,
         default="10",
-        validate=lambda val: val.isdigit() and int(val) >= 0,
-    ).ask()
+    )
 
-    double_votes = questionary.text(
+    double_votes = input_text(
         "Quantos votos duplicados deseja gerar?",
+        validate_int=lambda val: val.isdigit()
+        and int(val) >= 0
+        and int(val) <= int(any_votes),
         default="5",
-        validate=lambda val: val.isdigit() and int(val) >= 0,
-    ).ask()
+    )
 
-    # tipo = questionary.select(
-    #     "Escolha o tipo de eleição:", choices=["Municipal", "Geral"]
-    # ).ask()
     return int(any_votes), int(double_votes)
 
 
 def format_config(config):
     base = (
-        f"[bold]Tipo de Eleição:[/bold] {config['type']}\n"
         f"[bold]Votos totais:[/bold] {config['anyVotes'] + config['doubleVotes'] + config['conventionalVotes']}\n"
-        f"[bold]Any Votes:[/bold] {config['anyVotes']} | "
-        f"[bold]Votos Convencionais:[/bold] {config['conventionalVotes']} | "
-        f"[bold]Votos Duplicados:[/bold] {config['doubleVotes']} \n"
-        f"[bold]Votos Nulos:[/bold] {config['nullVotes']} | "
-        f"[bold]Votos Branco:[/bold] {config['blankVotes']} \n"
+        f"[bold]Any Votes:[/bold] {config['anyVotes']}\n"
+        f"[bold]Votos Duplicados:[/bold] {config['doubleVotes']}\n"
+        f"[bold]Votos Convencionais:[/bold] {config['conventionalVotes']}\n"
     )
+
     return base
 
 
 def table_cargos(cargos):
-    table = Table(title="Cargos Ativos", show_header=True, header_style="bold magenta")
-    table.add_column("Cargo")
-    table.add_column("Nº de Candidatos", justify="center")
-    for cargo in cargos:
-        if cargo["candidates"] != 0:
-            table.add_row(cargo["contest"].capitalize(), str(cargo["candidates"]))
-    return table
+    rows = [
+        (cargo["contest"].capitalize(), cargo["candidates"])
+        for cargo in cargos
+        if cargo["candidates"] != 0
+    ]
+    simple(
+        headers=["[magenta]Cargo[/magenta]", "[magenta]Nº de Candidatos[/magenta]"],
+        rows=rows,
+        title="Cargos Ativos",
+    )
 
 
-# import questionary
-
-# config = {
-#     "anyVotes": 10,
-#     "doubleVotes": 5,
-#     "blankVotes": 2,
-#     "nullVotes": 1,
-# }
-
-
-def show():
+def show(_=None):
 
     while True:
         console.clear()
@@ -115,10 +81,11 @@ def show():
             console.print(
                 "[bold red]Arquivo electionConfig.json não encontrado![/bold red]"
             )
+            input("Voltando... ")
+            return "home", None
 
-        painel_explicacao = Panel(
-            Align.left(
-                """
+        title = "[bold blue]Passo 3 - Simução de Votos[/bold blue]"
+        txt = """
 [white]
 Esta etapa gera votos simulados que são cifrados com a chave pública da mixnet. Após a geração, os votos são processados para remover duplicações. Apenas a parte cifrada (escolhas por cargo) é enviada à mixnet para o embaralhamento.
 [/white]
@@ -127,49 +94,56 @@ Esta etapa gera votos simulados que são cifrados com a chave pública da mixnet
 
 Configure os parâmetros em [bold]electionConfig.json[/bold]
 """
-            ),
-            title="[bold blue]Passo 3 - Simução de Votos[/bold blue]",
-            border_style="blue",
-            width=100,
-            padding=(1, 2),
-        )
-        console.print(painel_explicacao)
+
+        console.print(shell(title, txt))
 
         any_votes, double_votes = vote_params()
         update_config(any_votes, double_votes)
         config = load_election_config()
 
-        console.print(
-            Panel(format_config(config), title="Configuração da Eleição"), width=80
-        )
+        console.print(shell("Configuração da Eleição", format_config(config), width=20))
         console.print(table_cargos(config["options"]))
 
-        escolha = questionary.select(
+        escolha = select(
             "Deseja gerar os votos simulados?",
-            choices=["[GERAR VOTOS]", "[RECARREGAR electionConfig.json]", "[↩ VOLTAR]"],
-        ).ask()
+            ["1. Gerar Votos", "2. electionConfig.json", "[↩ VOLTAR]"],
+        )
 
-        if escolha == "[GERAR VOTOS]":
-            spinner = Spinner("dots", text="Gerando votos simulados...")
-            with Live(spinner, refresh_per_second=10, transient=True):
-                hex_str = get_publickey()
-                key_bytes = bytes.fromhex(hex_str)
-                key = json.dumps(list(key_bytes))  # mesmo formato que você já usava
-                e = MockElection(key, config)
-                e.simulate()
-                e.export_tally()
+        if escolha.startswith("1"):
+            run_with_spinner(
+                lambda: run_mock(config), text="Gerando votos simulados..."
+            )
 
-            spinner = Spinner("dots", text="Enviando para o backend...")
-            with Live(spinner, refresh_per_second=10, transient=True):
-                flask_api.post_gavt("output/gavt.json")
+            input("[Continuar]")
 
-            spinner = Spinner("dots", text="Processando Votos...")
-            with Live(spinner, refresh_per_second=10, transient=True):
-                flask_api.process_gavt()
+            run_with_spinner(
+                lambda: flask_api.post_gavt("output/gavt.json"),
+                text="Enviando para o backend...",
+            )
+            run_with_spinner(
+                lambda: flask_api.process_gavt(), text="Processando Votos..."
+            )
 
-            return result.show()
-        elif escolha == "[RECARREGAR electionConfig.json]":
+            return "sim.result", None
+        elif escolha.startswith("2"):
             continue
         else:
             console.print("[italic]Operação cancelada.[/italic]")
-            return home.show()
+            input("Voltando...")
+            return "home", None
+
+
+def run_mock(config):
+    hex_str = get_publickey()
+    key_bytes = bytes.fromhex(hex_str)
+    key = json.dumps(list(key_bytes))
+
+    encryptor = NodeDaemonEncryptor(key)
+    app = MockElection(key, config, encryptor)
+    app.simulate()
+
+    app.export_tally()
+    try:
+        encryptor.close()
+    except Exception:
+        pass

@@ -1,15 +1,25 @@
-import uuid
-import random
-import subprocess
-import os
-import json
-import csv
-import ast
+from typing import Dict
+import uuid, random, os, json, csv
+
+from core.plaintext import build_plaintext
+from ports.encrypt_port import EncryptPort
+
+import time
 
 
 class MockElection:
-    def __init__(self, public_key_str, election_config: dict):
-        self.election_id = "9999"
+    def __init__(
+        self,
+        public_key_str,
+        election_config: dict,
+        encryptor: EncryptPort,
+        election_id="9999",
+    ):
+        self.encryptor = encryptor
+        self.public_key_str = public_key_str
+        self.config = election_config
+        self.election_id = election_id
+
         self.cargo_ids = {
             "prefeito": "01",
             "vereador": "02",
@@ -19,8 +29,6 @@ class MockElection:
             "governador": "07",
             "presidente": "11",
         }
-        self.public_key_str = public_key_str
-        self.config = election_config
 
         # Vai conter objetos AnyVote simulados
         self.gavt = []
@@ -51,27 +59,16 @@ class MockElection:
                 self.candidate_codes[contest] = [start - j for j in range(qtd)]
 
     def gen_any_vote(self, tokenid) -> dict:
-        """Gera e armazena um AnyVote simulado com token e atualização do tally."""
-        encrypted_votes = []
-
+        pts = []
         for contest, codes in self.candidate_codes.items():
             if not codes:
                 continue
-
             escolhido = random.choice(codes)
-
-            # Atualiza tally
             self.tally[contest][escolhido] += 1
+            contestID = self.cargo_ids.get(contest, "00")
+            pts.append(build_plaintext(self.election_id, contestID, escolhido))
 
-            contestID = self.cargo_ids.get(contest, 0)
-
-            ##Complete Vote = electionID + contestID + candidateID
-            vote = self.election_id + contestID + str(escolhido)
-
-            # Criptografa e adiciona à lista
-            encrypted = self.encrypt(str(vote))
-            encrypted_votes.append(encrypted)
-
+        encrypted_votes = self.encryptor.encrypt_batch(pts)
         any_vote = {
             "tokenID": tokenid,
             "encryptedVotes": encrypted_votes,
@@ -80,9 +77,7 @@ class MockElection:
                 "votingMachineID": random.randint(1, self.config["numberBallots"]),
             },
         }
-
         self.gavt.append(any_vote)
-
         return any_vote
 
     def generate_conventional_vote(self):
@@ -97,10 +92,13 @@ class MockElection:
         self.rdv.append(voto)
 
     def simulate(self):
+        total_plaintexts = 0
+        start = time.time()
         # Gera votos cifrados (anyVotes)
         for _ in range(self.config.get("anyVotes")):
             tokenid = str(uuid.uuid4())
-            self.gen_any_vote(tokenid)
+            vote = self.gen_any_vote(tokenid)
+            total_plaintexts += len(vote["encryptedVotes"])
 
         # Gera votos convencionais (não cifrados)
         for _ in range(self.config.get("conventionalVotes")):
@@ -108,7 +106,11 @@ class MockElection:
 
         # Gera votos duplicados (anyVotes com mesmo token)
         for _ in range(self.config.get("doubleVotes")):
-            self.double_vote()
+            v = self.double_vote()
+            total_plaintexts += len(v["encryptedVotes"])
+
+        elapsed = time.time() - start
+        print(f"> {total_plaintexts} plaintexts cifrados em {elapsed:.2f} segundos")
 
         self.export_gavt("json")
         self.export_gavt("csv")
@@ -118,25 +120,15 @@ class MockElection:
         raise NotImplementedError
 
     def encrypt(self, value: str) -> str:
-        result = subprocess.run(
-            ["node", "encryptor/encrypt.js", value],
-            input=self.public_key_str,
-            capture_output=True,
-            text=True,
-        )
+        return self.encryptor.encrypt(value)
 
-        if result.returncode != 0:
-            raise RuntimeError(f"Erro ao cifrar: {result.stderr}")
-
-        str_restult = result.stdout.strip()
-
-        # Converter para bytes
-        byte_data = bytes(ast.literal_eval(str_restult))
-
-        # Converter para hexadecimal
-        hex_string = byte_data.hex()
-
-        return hex_string
+    def __del__(self):
+        try:
+            close = getattr(self.encryptor, "close", None)
+            if callable(close):
+                close()
+        except Exception:
+            pass
 
     def double_vote(self):
         """Duplica um anyVote já existente na GAVT usando o mesmo tokenID."""

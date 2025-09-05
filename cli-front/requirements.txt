@@ -1,0 +1,5 @@
+rich
+questionary
+requests
+requests-toolbelt
+readchar

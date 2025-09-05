@@ -21,8 +21,7 @@ def _post_file(endpoint, file_path):
             response.raise_for_status()
             return response.json()
     except requests.RequestException as e:
-        print(f"[Erro] Falha na requisição para {url}: {e}")
-        return None
+        raise RuntimeError(f"[Erro] Falha na requisição para {url}: {e}")
 
 
 def _post(endpoint, payload=None):
@@ -31,6 +30,17 @@ def _post(endpoint, payload=None):
         response = requests.post(url, json=payload)
         response.raise_for_status()
         return response.json()
+    except requests.RequestException as e:
+        raise RuntimeError(f"[Erro] Falha na requisição para {url}: {e}")
+
+
+def _get(endpoint, payload=None):
+    url = f"{BASE_URL}{endpoint}"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+
+        return response.text
     except requests.RequestException as e:
         print(f"[Erro] Falha na requisição para {url}: {e}")
         return None

@@ -16,16 +16,16 @@ def get_publickey():
     return _get("/guardian/public-key")
 
 
-# def post_generate_ciphertexts(payload=None):
-#     return _post("/generate-ciphertexts", payload)
+def get_log():
+    return _get("/shuffler/log")
 
 
-# def post_mix(payload=None):
-#     return _post("/mix", payload)
+def decrypt():
+    return _post("/guardian/decrypt")
 
 
-# def post_verify(payload=None):
-#     return _post("/verify", payload)
+def get_shuffled():
+    return _get("/shuffler/shuffled-ciphertexts")
 
 
 def _post(endpoint, payload=None):

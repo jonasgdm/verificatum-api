@@ -14,7 +14,7 @@ from screens.sim import setup
 console = Console()
 
 
-def show():
+def show(_=None):
     titulo = "[bold blue]Etapa 1 – Simular Votação[/bold blue]"
 
     descricao = """
@@ -79,7 +79,6 @@ def show():
     ).ask()
 
     if escolha.startswith("1"):
-
-        setup.show()
+        return "sim.setup", None
     else:
-        home.show()
+        return "home", None

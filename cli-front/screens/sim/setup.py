@@ -1,43 +1,23 @@
 from rich import print
-from rich.panel import Panel
-from rich.align import Align
 from rich.console import Console
-from rich.live import Live
-from rich.spinner import Spinner
 
-import requests
-import questionary
 
 from services.verificatum_api import post_setup
-
 from utils.protinfo_parser import parse_protinfo
 
-from screens.sim import keygen
 
-# from screens import keygen, home
+from ui.panel import shell
+from ui.prompt import select
+from ui.spinner import run_with_spinner
 
 console = Console()
 
-# SERVICES = {
-#     "Verificatum API": "http://localhost:8080",
-#     "Backend Flask": "http://127.0.0.1:5000/api",
-# }
 
-
-# def check_service(name, url):
-#     try:
-#         r = requests.get(url, timeout=2)
-#         return True
-#     except requests.RequestException:
-#         return False
-
-
-def show():
+def show(_=None):
     console.clear()
-    # 1. PAINEL EXPLICATIVO INICIAL
-    painel_explicacao = Panel(
-        Align.left(
-            """
+
+    title = "[bold blue]Passo 1 - Configuração da Rede[/bold blue]"
+    txt = """
 [white]O setup inicializa a infraestrutura da mixnet, distribuindo e sincronizando a configuração entre os nós.[/white]
 
 [bold]Etapas realizadas:[/bold]
@@ -49,49 +29,16 @@ def show():
 
 Ao final, todos os nós terão uma configuração sincronizada, pronta para executar o protocolo com [bold]threshold[/bold] de decifração.
 """
-        ),
-        title="[bold blue]Passo 1 - Configuração da Rede[/bold blue]",
-        border_style="blue",
-        width=100,
-        padding=(1, 2),
-    )
-    console.print(painel_explicacao)
-    # console.print(
-    #     "[bold cyan]Verificando conectividade com servidores...[/bold cyan]\n"
-    # )
-    #
-    # status_lines = []
-    # for name, url in SERVICES.items():
-    #     spinner = Spinner("dots", text=f"Testando {name}...")
-    #     with Live(spinner, refresh_per_second=10, transient=True):
-    #         ok = check_service(name, url)
-    #     symbol = "[green]✓[/green]" if ok else "[red]✗[/red]"
-    #     status_lines.append(f"{symbol} {name} ({url})")
 
-    # console.print(Panel("\n".join(status_lines), title="Status dos Serviços"), width=80)
+    console.print(shell(title, txt))
 
-    escolha = questionary.select(
+    escolha = select(
         "Deseja iniciar o setup?",
-        choices=["Iniciar Setup", "↩ Voltar"],
-    ).ask()
+        ["1.Iniciar Setup", "0.Voltar"],
+    )
 
-    if escolha == "Iniciar Setup":
-
-        # 2. FEEDBACK DE EXECUÇÃO
-        # steps = [
-        #     "Matando processos anteriores e liberando portas...",
-        #     "Criando diretórios de sessão para os nós...",
-        #     "Executando 'vmni -prot' para cada nó...",
-        #     "Registrando nome, HTTP e Hint de cada nó...",
-        #     "Compartilhando arquivos de configuração entre os nós...",
-        #     "Executando merge final dos arquivos de protocolo...",
-        # ]
-
-        spinner = Spinner("dots", text="Executando configuração da rede de mixing...")
-        with Live(spinner, refresh_per_second=10, transient=True):
-            # for step in steps:
-            #     console.log(f"[cyan]* {step}")
-            response = post_setup()
+    if escolha.startswith("1"):
+        response = run_with_spinner(lambda: post_setup())
         if response and response.get("status") == "Setup complete":
             console.print(
                 "\n[bold green]✓ Infraestrutura inicializada com sucesso.[/bold green]\n"
@@ -119,12 +66,14 @@ Ao final, todos os nós terão uma configuração sincronizada, pronta para exec
                 f"[bold]Bulletin board:[/bold] {info['bulletin_board'].split('.')[-1]} | [bold]Max ciphertexts:[/bold] {info.get('maxciph', '0')}\n\n"
                 f"[bold]Mix Servers:[/bold]\n{partes}"
             )
-            console.print(Panel(bloco, title="Configuração do Protocolo", width=100))
+            title = "Configuração do Protocolo"
+            console.print(shell(title, bloco))
             input("[CONTINUAR]")
-            return keygen.show()
+            return "sim.keygen", None
         else:
             console.print("\n[bold red]Erro ao executar o setup.[/bold red]\n")
-            return False
+            input("> Voltar")
+            return "home", None
     else:
         console.print("[italic]Setup cancelado.[/italic]")
-        return home.show()
+        return "sim.sim_menu", None

@@ -1,0 +1,6 @@
+from typing import List, Protocol
+
+
+class EncryptPort(Protocol):
+    def encrypt(self, value: str) -> str: ...
+    def encrypt_batch(self, values: List[str]) -> List[str]: ...
