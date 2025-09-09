@@ -48,7 +48,7 @@ public class MixnetCommon {
        Setup (local)
        ===================== */
     public static Map<String, String> setupLocal(String baseDir, String sessionId,
-                                                 String electionName, int numServers, int serverId) {
+                                                 String electionName, int numServers, int thres, int serverId) {
         try {
             File dir = new File(baseDir + "/0" + serverId);
             dir.mkdirs();
@@ -59,7 +59,7 @@ public class MixnetCommon {
                     "-sid", sessionId,
                     "-name", electionName,
                     "-nopart", String.valueOf(numServers),
-                    "-thres", "2");
+                    "-thres", String.valueOf(thres));
 
             run(dir, "vmni", "-party",
                     "-name", "GuardianMixServer_0" + serverId,

@@ -5,6 +5,7 @@ import java.util.List;
 public class GuardianConfig {
     public boolean auto = false;
     public int numServers = 3;
+    public int thres = 2;
     public int localServerId = 1;               // Guardian 1 is the entrypoint
     public String baseDir = "verificatum-guardian";
     public String sessionId = "GuardianSession";

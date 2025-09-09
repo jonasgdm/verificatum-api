@@ -24,12 +24,14 @@ public class GuardianMixnetController {
     public Map<String, String> setup(
             @RequestParam(defaultValue = "false") boolean auto,
             @RequestParam(defaultValue = "3") int numServers,
+            @RequestParam(defaultValue = "2") int thres,
             @RequestBody(required = false) Map<String, Object> body) {
 
         try {
             GuardianConfig c = cfg();
             c.auto = auto;
             c.numServers = numServers;
+            c.thres = thres;
             c.baseDir = "verificatum-guardian";
             c.sessionId = "GuardianSession";
             c.electionName = "Guardian_Election";
@@ -49,7 +51,7 @@ public class GuardianMixnetController {
                 c.validateForAuto();
 
                 // 1) Setup local serverId=1
-                MixnetCommon.setupLocal(c.baseDir, c.sessionId, c.electionName, c.numServers, 1);
+                MixnetCommon.setupLocal(c.baseDir, c.sessionId, c.electionName, c.numServers, c.thres, 1);
 
                 // 2) Setup on remotes via SSH (serverId 2..N)
                 for (int id = 2; id <= c.numServers; id++) {
@@ -79,7 +81,7 @@ public class GuardianMixnetController {
             } else {
                 // Manual (pendrive): only local node generates its protInfo0{serverId}.xml.
                 // Users will run /setup-local on each machine and share files manually, then /merge-local.
-                MixnetCommon.setupLocal(c.baseDir, c.sessionId, c.electionName, c.numServers, 1);
+                MixnetCommon.setupLocal(c.baseDir, c.sessionId, c.electionName, c.numServers, c.thres, 1);
             }
 
             return Map.of("status", "Setup complete (" + (auto ? "auto" : "manual") + ")");
@@ -94,6 +96,7 @@ public class GuardianMixnetController {
     public Map<String, String> setupLocal(
             @RequestParam int serverId,
             @RequestParam int numServers,
+            @RequestParam int thres,
             @RequestParam String sessionId,
             @RequestParam String electionName) {
         GuardianConfig c = cfg();
@@ -104,7 +107,7 @@ public class GuardianMixnetController {
 
         VerificatumCleaner.resetGuardianNode(c.baseDir, serverId);
 
-        return MixnetCommon.setupLocal(c.baseDir, sessionId, electionName, numServers, serverId);
+        return MixnetCommon.setupLocal(c.baseDir, sessionId, electionName, numServers, thres, serverId);
     }
 
     // Merge local protInfo0*.xml → protInfo.xml (manual or auto)
