@@ -1,6 +1,10 @@
 package com.example.verificatumapi;
 
 import java.io.*;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.*;
 
 public class MixnetCommon {
@@ -23,6 +27,23 @@ public class MixnetCommon {
         }
     }
 
+    public static String getLocalAddress() throws SocketException, UnknownHostException{
+        Iterator<NetworkInterface> nis  = NetworkInterface.getNetworkInterfaces().asIterator();
+        NetworkInterface ni;
+        String local_address = InetAddress.getLocalHost().getHostAddress();
+        while (nis.hasNext()) {
+            ni = nis.next();
+            Iterator<InetAddress> addresses = ni.getInetAddresses().asIterator();
+            while (addresses.hasNext()) {
+                String current_address = addresses.next().getHostAddress();
+                System.out.println(current_address);
+                local_address = current_address.contains("192.168") ? current_address : local_address;
+            }
+        }
+
+        return local_address;
+    }
+
     /* =====================
        Setup (local)
        ===================== */
@@ -32,6 +53,8 @@ public class MixnetCommon {
             File dir = new File(baseDir + "/0" + serverId);
             dir.mkdirs();
 
+            String local_address = getLocalAddress();
+
             run(dir, "vmni", "-prot",
                     "-sid", sessionId,
                     "-name", electionName,
@@ -40,8 +63,8 @@ public class MixnetCommon {
 
             run(dir, "vmni", "-party",
                     "-name", "GuardianMixServer_0" + serverId,
-                    "-http", "http://localhost:804" + serverId,
-                    "-hint", "localhost:404" + serverId);
+                    "-http", "http://" + local_address + ":804" + serverId,
+                    "-hint", local_address + ":404" + serverId);
 
             String piName = "protInfo" + String.format("%02d", serverId) + ".xml";
             new File(dir, "localProtInfo.xml")
