@@ -58,6 +58,7 @@ public class GuardianMixnetController {
                     String remote = c.servers.get(id - 2);
                     String cmd = "curl -sS -X POST http://localhost:8080/guardian/setup-local"
                             + " -d 'serverId=" + id + "&numServers=" + c.numServers
+                            + "&thres=" + c.thres
                             + "&sessionId=" + c.sessionId
                             + "&electionName=" + c.electionName + "'";
                     RemoteExecutor.executeSSH(remote, cmd);
