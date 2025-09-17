@@ -120,6 +120,7 @@ public class ShufflerMixnetController {
             @RequestParam(defaultValue = "ShuffleSession") String sessionId,
             @RequestParam(defaultValue = "ShufflerNet") String electionName) {
         try {
+            MixnetCommon.cleanAndPrepareBase(BASE_DIR, NUM_SERVERS);
             File serverDir = new File(BASE_DIR + "/0" + serverId);
             MixnetCommon.run(serverDir, "vmni", "-prot",
                     "-sid", sessionId,
