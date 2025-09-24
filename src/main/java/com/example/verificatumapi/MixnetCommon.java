@@ -54,6 +54,9 @@ public class MixnetCommon {
             File dir = new File(baseDir + "/0" + serverId);
             dir.mkdirs();
 
+            File filesDir = new File("/files");
+            filesDir.mkdirs();
+
             String local_address = getLocalAddress();
 
             run(dir, "vmni", "-prot",
@@ -70,6 +73,11 @@ public class MixnetCommon {
             String piName = "protInfo" + String.format("%02d", serverId) + ".xml";
             new File(dir, "localProtInfo.xml")
                 .renameTo(new File(dir, piName));
+            
+            File piOrig = new File(dir, piName);
+            File piDest = new File("/files/" + piName);
+            
+            Files.copy(piOrig.toPath(), piDest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
             return Map.of("status", "Setup local complete (server " + serverId + ")");
         } catch (Exception e) {
@@ -103,12 +111,17 @@ public class MixnetCommon {
     public static Map<String, String> mergeLocal(String baseDir, int numServers, int serverId) {
         try {
             File dir = new File(baseDir + "/0" + serverId);
-            List<String> args = new ArrayList<>();
-            args.add("vmni"); args.add("-merge");
-            for (int k = 1; k <= numServers; k++) {
-                args.add("protInfo" + String.format("%02d", k) + ".xml");
-            }
-            run(dir, args.toArray(new String[0]));
+            // List<String> args = new ArrayList<>();
+            // args.add("vmni"); args.add("-merge");
+            // for (int k = 1; k <= numServers; k++) {
+            //     args.add("protInfo" + String.format("%02d", k) + ".xml");
+            // }
+            // run(dir, args.toArray(new String[0]));
+
+            File piOrig = new File("/files/protInfo.xml");
+            File piDest = new File(dir, "protInfo.xml");
+            Files.copy(piOrig.toPath(), piDest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
             return Map.of("status", "Merge local complete (server " + serverId + ")");
         } catch (Exception e) {
             e.printStackTrace();
@@ -130,7 +143,6 @@ public class MixnetCommon {
             
             File pkOrig = new File(serverDir + "/publicKey.native");
             File pkDest = new File("/files/publicKey");
-            pkDest.mkdir();
 
             Files.copy(pkOrig.toPath(), pkDest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 

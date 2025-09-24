@@ -261,23 +261,10 @@ public class GuardianMixnetController {
         return MixnetCommon.decryptLocal(cfg().baseDir, serverId);
     }
 
-    @PostMapping("/decrypt-local-async")
-    public Map<String, String> decryptLocalAsync(@RequestParam int serverId) {
-        try {
-            // libera portas deste nó antes de iniciar
-            VerificatumCleaner.freeGuardianServer(serverId);
-            MixnetCommon.startDecryptDetached(cfg().baseDir, serverId);
-            return Map.of("status", "decrypt started (server " + serverId + ")");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Map.of("error", e.getMessage());
-        }
-    }
-
     @GetMapping("/public-key")
     public ResponseEntity<FileSystemResource> getPublicKeyNative() {
         try {
-            File nativePk = NativeConverters.ensureGuardianPublicKeyNative(GuardianConfig.get().baseDir);
+            File nativePk = new File("/files/publicKey");
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=publicKey.native")
