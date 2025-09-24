@@ -8,7 +8,6 @@ import org.springframework.util.MultiValueMap;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 @RestController
@@ -82,10 +81,21 @@ public class GuardianMixnetController {
             } else {
                 // Manual (pendrive): only local node generates its protInfo0{serverId}.xml.
                 // Users will run /setup-local on each machine and share files manually, then /merge-local.
-                MixnetCommon.setupLocal(c.baseDir, c.sessionId, c.electionName, c.numServers, c.thres, 1);
+                //MixnetCommon.setupLocal(c.baseDir, c.sessionId, c.electionName, c.numServers, c.thres, 1);
             }
 
-            return Map.of("status", "Setup complete (" + (auto ? "auto" : "manual") + ")");
+            for (int i = 0; i < c.numServers; i++){
+                // aguarda arquivos de protocol info
+                File pi = new File("/files/protInfo" + String.format("%02d", i) + ".xml");
+                boolean ok = MixnetCommon.waitForFile(pi, 10 * 60 * 1000L); // timeout 10min
+                if (!ok) {
+                    throw new RuntimeException("Timeout aguardando setup.");
+                }
+            }
+
+            MixnetCommon.mergeCentral("", c.numServers);
+
+            return Map.of("status", "Setup completo (" + (auto ? "auto" : "manual") + ")");
         } catch (Exception e) {
             e.printStackTrace();
             return Map.of("error", e.getMessage());
@@ -130,10 +140,10 @@ public class GuardianMixnetController {
             GuardianConfig c = cfg();
             ensureSetupConfigured(c);
 
-            // sempre libere portas do nó 1 antes
-            VerificatumCleaner.freeGuardianServer(1);
-
             if (c.auto) {
+                // sempre libere portas do nó 1 antes
+                VerificatumCleaner.freeGuardianServer(1);
+
                 // 1) inicia local em background
                 MixnetCommon.startKeygenDetached(c.baseDir, 1);
 
@@ -144,22 +154,31 @@ public class GuardianMixnetController {
                             + " -d 'serverId=" + id + "'";
                     RemoteExecutor.executeSSH(remote, cmd);
                 }
+
+                // 3) orquestrador aguarda *apenas* o arquivo do nó 1 (suficiente p/ saber que terminou)
+                File pk1 = new File(c.baseDir + "/01/publicKey");
+                boolean ok = MixnetCommon.waitForFile(pk1, 10 * 60 * 1000L); // timeout 10min
+                if (!ok) {
+                    File log = new File(c.baseDir + "/01/vmn.log");
+                    throw new RuntimeException("Timeout aguardando keygen no nó 1. Ver log: " + log.getAbsolutePath());
+                }
+    
+                // (opcional) já converte e deixa pronto pro front
+                NativeConverters.ensureGuardianPublicKeyNative(c.baseDir);
+
             } else {
                 // manual: pode usar também o modo detached para manter consistência
-                MixnetCommon.startKeygenDetached(c.baseDir, 1);
+                // MixnetCommon.startKeygenDetached(c.baseDir, 1);
                 // os outros nós devem chamar /guardian/keygen-local-async localmente
             }
 
-            // 3) orquestrador aguarda *apenas* o arquivo do nó 1 (suficiente p/ saber que terminou)
-            File pk1 = new File(c.baseDir + "/01/publicKey");
-            boolean ok = MixnetCommon.waitForFile(pk1, 10 * 60 * 1000L); // timeout 10min
+            // aguarda arquivo da chave pública
+            File pk = new File("/files/publicKey");
+            boolean ok = MixnetCommon.waitForFile(pk, 10 * 60 * 1000L); // timeout 10min
             if (!ok) {
-                File log = new File(c.baseDir + "/01/vmn.log");
-                throw new RuntimeException("Timeout aguardando keygen no nó 1. Ver log: " + log.getAbsolutePath());
+                File log = new File("/logs/pk.log");
+                throw new RuntimeException("Timeout aguardando keygen. Ver log: " + log.getAbsolutePath());
             }
-
-            // (opcional) já converte e deixa pronto pro front
-            NativeConverters.ensureGuardianPublicKeyNative(c.baseDir);
 
             return Map.of("status", "Keygen complete (" + (c.auto ? "auto" : "manual") + ")");
         } catch (Exception e) {
@@ -171,19 +190,6 @@ public class GuardianMixnetController {
     @PostMapping("/keygen-local")
     public Map<String, String> keygenLocal(@RequestParam int serverId) {
         return MixnetCommon.keygenLocal(cfg().baseDir, serverId);
-    }
-
-    @PostMapping("/keygen-local-async")
-    public Map<String, String> keygenLocalAsync(@RequestParam int serverId) {
-        try {
-            // libera portas desse nó antes de iniciar
-            VerificatumCleaner.freeGuardianServer(serverId);
-            MixnetCommon.startKeygenDetached(cfg().baseDir, serverId);
-            return Map.of("status", "keygen started (server " + serverId + ")");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Map.of("error", e.getMessage());
-        }
     }
 
     /* =====================
@@ -211,7 +217,7 @@ public class GuardianMixnetController {
                 }
             } else {
                 // Manual: dispara só o local; demais nós devem chamar /decrypt-local-async por conta própria
-                MixnetCommon.startDecryptDetached(c.baseDir, 1);
+                // MixnetCommon.startDecryptDetached(c.baseDir, 1);
             }
 
             // 3) orquestrador aguarda o artefato do nó 1

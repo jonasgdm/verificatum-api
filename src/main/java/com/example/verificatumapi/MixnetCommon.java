@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.*;
 
 public class MixnetCommon {
@@ -78,6 +79,25 @@ public class MixnetCommon {
     }
 
     /* =====================
+       Merge (central)
+       ===================== */
+    public static Map<String, String> mergeCentral(String baseDir, int numServers) {
+        try {
+            File dir = new File(baseDir + "/files");
+            List<String> args = new ArrayList<>();
+            args.add("vmni"); args.add("-merge");
+            for (int k = 1; k <= numServers; k++) {
+                args.add("protInfo" + String.format("%02d", k) + ".xml");
+            }
+            run(dir, args.toArray(new String[0]));
+            return Map.of("status", "Merge central completo.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Map.of("error", e.getMessage());
+        }
+    }
+
+    /* =====================
        Merge (local)
        ===================== */
     public static Map<String, String> mergeLocal(String baseDir, int numServers, int serverId) {
@@ -102,8 +122,18 @@ public class MixnetCommon {
     public static Map<String, String> keygenLocal(String baseDir, int serverId) {
         try {
             VerificatumCleaner.freeGuardianServer(serverId);
-            File dir = new File(baseDir + "/0" + serverId);
+            String serverDir = baseDir + "/" + String.format("%02d", serverId);
+            File dir = new File(serverDir);
             run(dir, "vmn", "-keygen", "publicKey");
+
+            NativeConverters.ensureGuardianPublicKeyNative(serverDir);
+            
+            File pkOrig = new File(serverDir + "/publicKey.native");
+            File pkDest = new File("/files/publicKey");
+            pkDest.mkdir();
+
+            Files.copy(pkOrig.toPath(), pkDest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
             return Map.of("status", "Keygen local complete (server " + serverId + ")");
         } catch (Exception e) {
             e.printStackTrace();

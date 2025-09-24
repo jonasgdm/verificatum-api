@@ -88,21 +88,21 @@ public class ShufflerMixnetController {
                             "privInfo.xml", "protInfo.xml", "../publicKey");
                 }
             } else {
-                File serverDir = new File(BASE_DIR + "/01");
-                MixnetCommon.run(serverDir, "vmni", "-prot",
-                        "-sid", SESSION_ID,
-                        "-name", ELECTION_NAME,
-                        "-nopart", String.valueOf(NUM_SERVERS),
-                        "-thres", "2"
-                );
-                String localAddress = MixnetCommon.getLocalAddress();
-                MixnetCommon.run(serverDir, "vmni", "-party",
-                        "-name", "Shuffler_01",
-                        "-http", "http://" + localAddress + ":8051",
-                        "-hint", localAddress + ":4051"
-                );
-                new File(serverDir, "localProtInfo.xml")
-                        .renameTo(new File(serverDir, "protInfo01" + ".xml"));
+                // File serverDir = new File(BASE_DIR + "/01");
+                // MixnetCommon.run(serverDir, "vmni", "-prot",
+                //         "-sid", SESSION_ID,
+                //         "-name", ELECTION_NAME,
+                //         "-nopart", String.valueOf(NUM_SERVERS),
+                //         "-thres", "2"
+                // );
+                // String localAddress = MixnetCommon.getLocalAddress();
+                // MixnetCommon.run(serverDir, "vmni", "-party",
+                //         "-name", "Shuffler_01",
+                //         "-http", "http://" + localAddress + ":8051",
+                //         "-hint", localAddress + ":4051"
+                // );
+                // new File(serverDir, "localProtInfo.xml")
+                //         .renameTo(new File(serverDir, "protInfo01" + ".xml"));
             }
 
             return Map.of("status", "Shuffler setup complete");
