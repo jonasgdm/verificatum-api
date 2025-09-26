@@ -12,12 +12,43 @@ from collections import defaultdict
 
 GAVT_FILE = "./uploads/gavt.json"
 OUTPUT_DIR = "./output"
+UPLOAD_FOLDER = "protinfo"  # pasta onde salvar
 
 
 def prf(seed: str, data: str) -> int:
     return int.from_bytes(
         hmac.new(seed.encode(), data.encode(), hashlib.sha256).digest(), "big"
     )
+
+
+class ProtInfoController(MethodView):
+    def get(self, index):
+        # por enquanto só de exemplo
+        filepath = os.path.join(UPLOAD_FOLDER, f"protinfo_{index}.json")
+        if os.path.exists(filepath):
+            with open(filepath, "r", encoding="utf-8") as f:
+                return f.read(), 200, {"Content-Type": "application/json"}
+        return jsonify({"error": "Arquivo não encontrado"}), 404
+
+    def post(self, index):
+        # garante que a pasta existe
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+        # pega arquivo do corpo (ex.: form-data -> file=@meuarquivo.json)
+        if "file" not in request.files:
+            return jsonify({"error": "Nenhum arquivo enviado"}), 400
+
+        file = request.files["file"]
+
+        if file.filename == "":
+            return jsonify({"error": "Arquivo sem nome"}), 400
+
+        # salva como protinfo_INDEX.ext
+        filename = f"protinfo_{index}{os.path.splitext(file.filename)[1]}"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+
+        return jsonify({"message": "Arquivo salvo com sucesso", "path": filepath}), 201
 
 
 class ShuffleController(MethodView):

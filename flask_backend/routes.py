@@ -14,3 +14,6 @@ routes_bp.add_url_rule(
 )
 
 routes_bp.add_url_rule("/api/shuffle", view_func=ShuffleController.as_view("shuffle"))
+routes_bp.add_url_rule(
+    "/api/protinfo/<int:index>", view_func=ProtInfoController.as_view("protinfo")
+)
