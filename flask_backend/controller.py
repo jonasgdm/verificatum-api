@@ -22,12 +22,10 @@ def prf(seed: str, data: str) -> int:
 
 
 class ProtInfoController(MethodView):
-    def get(self, index):
-        # por enquanto só de exemplo
-        filepath = os.path.join(UPLOAD_FOLDER, f"protinfo_{index}.json")
+    def get(self):
+        filepath = os.path.join(UPLOAD_FOLDER, "protInfo.xml")
         if os.path.exists(filepath):
-            with open(filepath, "r", encoding="utf-8") as f:
-                return f.read(), 200, {"Content-Type": "application/json"}
+            return send_file(filepath, as_attachment=True)
         return jsonify({"error": "Arquivo não encontrado"}), 404
 
     def post(self, index):
