@@ -43,7 +43,7 @@ class ProtInfoController(MethodView):
             return jsonify({"error": "Arquivo sem nome"}), 400
 
         # salva como protinfo_INDEX.ext
-        filename = f"protinfo_{index}{os.path.splitext(file.filename)[1]}"
+        filename = f"protInfo{index:02d}{os.path.splitext(file.filename)[1]}"
         filepath = os.path.join(UPLOAD_FOLDER, filename)
         file.save(filepath)
 
