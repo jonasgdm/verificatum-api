@@ -22,6 +22,7 @@ def prf(seed: str, data: str) -> int:
 
 
 class ProtInfoController(MethodView):
+
     def get(self):
         filepath = os.path.join(UPLOAD_FOLDER, "protInfo.xml")
         if os.path.exists(filepath):
@@ -46,6 +47,25 @@ class ProtInfoController(MethodView):
         file.save(filepath)
 
         return jsonify({"message": "Arquivo salvo com sucesso", "path": filepath}), 201
+
+    def delete(self):
+        try:
+            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+            # Remove todos os arquivos dentro da pasta
+            for filename in os.listdir(UPLOAD_FOLDER):
+                file_path = os.path.join(UPLOAD_FOLDER, filename)
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.remove(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+
+            return (
+                jsonify({"message": "Todos os arquivos foram apagados com sucesso"}),
+                200,
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
 
 class ShuffleController(MethodView):
