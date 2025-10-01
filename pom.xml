@@ -62,6 +62,19 @@
         <version>3.2.3</version>
     </dependency>
 
+    <!-- HttpClient 4.x -->
+    <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>4.5.14</version>
+    </dependency>
+
+    <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpmime</artifactId>
+        <version>4.5.14</version>
+    </dependency>
+
     <!-- <dependency>
         <groupId>com.verificatum</groupId>
         <artifactId>verificatum-vcr</artifactId>

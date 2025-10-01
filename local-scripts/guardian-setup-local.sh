@@ -26,6 +26,6 @@ read -e -i "$central_ip" -p "Insira o ip da máquina central (front end e servid
 central_ip="${input:-$central_ip}"
 
 curl -sS -X POST http://localhost:8080/guardian/setup-local \
-    -d "serverId=$mix_server&numServers=$num_servers&thres=$thres&sessionId=$session_id&electionName=$election_name"
+    -d "serverId=$mix_server&numServers=$num_servers&thres=$thres&sessionId=$session_id&electionName=$election_name&centralIp=$central_ip"
 
 # curl ... URL endpoint flask para enviar /files/protInfo0x.xml

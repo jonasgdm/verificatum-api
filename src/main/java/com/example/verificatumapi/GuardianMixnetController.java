@@ -50,7 +50,7 @@ public class GuardianMixnetController {
                 c.validateForAuto();
 
                 // 1) Setup local serverId=1
-                MixnetCommon.setupLocal(c.baseDir, c.sessionId, c.electionName, c.numServers, c.thres, 1);
+                MixnetCommon.setupLocal(c.baseDir, c.sessionId, c.electionName, c.numServers, c.thres, 1, "127.0.0.1");
 
                 // 2) Setup on remotes via SSH (serverId 2..N)
                 for (int id = 2; id <= c.numServers; id++) {
@@ -84,18 +84,18 @@ public class GuardianMixnetController {
                 //MixnetCommon.setupLocal(c.baseDir, c.sessionId, c.electionName, c.numServers, c.thres, 1);
             }
 
-            for (int i = 0; i < c.numServers; i++){
+            for (int i = 1; i <= c.numServers; i++){
                 // aguarda arquivos de protocol info
-                File pi = new File("/files/protInfo" + String.format("%02d", i) + ".xml");
+                File pi = new File("files/protInfo" + String.format("%02d", i) + ".xml");
                 boolean ok = MixnetCommon.waitForFile(pi, 10 * 60 * 1000L); // timeout 10min
                 if (!ok) {
                     throw new RuntimeException("Timeout aguardando setup.");
                 }
             }
 
-            MixnetCommon.mergeCentral("", c.numServers);
+            MixnetCommon.mergeCentral(c.numServers);
 
-            return Map.of("status", "Setup completo (" + (auto ? "auto" : "manual") + ")");
+            return Map.of("status", "Setup complete (" + (auto ? "auto" : "manual") + ")");
         } catch (Exception e) {
             e.printStackTrace();
             return Map.of("error", e.getMessage());
@@ -109,7 +109,8 @@ public class GuardianMixnetController {
             @RequestParam int numServers,
             @RequestParam int thres,
             @RequestParam String sessionId,
-            @RequestParam String electionName) {
+            @RequestParam String electionName,
+            @RequestParam String centralIp) {
         GuardianConfig c = cfg();
         // Keep config coherent if this node is also Guardian 1
         c.numServers = numServers;
@@ -118,7 +119,7 @@ public class GuardianMixnetController {
 
         VerificatumCleaner.resetGuardianNode(c.baseDir, serverId);
 
-        return MixnetCommon.setupLocal(c.baseDir, sessionId, electionName, numServers, thres, serverId);
+        return MixnetCommon.setupLocal(c.baseDir, sessionId, electionName, numServers, thres, serverId, centralIp);
     }
 
     // Merge local protInfo0*.xml → protInfo.xml (manual or auto)
@@ -173,7 +174,7 @@ public class GuardianMixnetController {
             }
 
             // aguarda arquivo da chave pública
-            File pk = new File("/files/publicKey");
+            File pk = new File("files/publicKey");
             boolean ok = MixnetCommon.waitForFile(pk, 10 * 60 * 1000L); // timeout 10min
             if (!ok) {
                 File log = new File("/logs/pk.log");
@@ -264,7 +265,7 @@ public class GuardianMixnetController {
     @GetMapping("/public-key")
     public ResponseEntity<FileSystemResource> getPublicKeyNative() {
         try {
-            File nativePk = new File("/files/publicKey");
+            File nativePk = new File("files/publicKey");
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=publicKey.native")
