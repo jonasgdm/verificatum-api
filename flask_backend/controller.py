@@ -35,11 +35,10 @@ class ProtInfoController(MethodView):
         os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
         # pega arquivo do corpo (ex.: form-data -> file=@meuarquivo.json)
-        if "file" not in request.files:
+        if not request.files:
             return jsonify({"error": "Nenhum arquivo enviado"}), 400
 
-        file = request.files["file"]
-
+        file = next(request.files.values())  # pega o primeiro arquivo enviado
         if file.filename == "":
             return jsonify({"error": "Arquivo sem nome"}), 400
 
