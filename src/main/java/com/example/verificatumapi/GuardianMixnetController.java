@@ -70,7 +70,7 @@ public class GuardianMixnetController {
                 distributeProtInfos();
 
                 // 5) Merge on every server
-                MixnetCommon.mergeLocal(c.baseDir, c.numServers, 1);
+                MixnetCommon.mergeLocal(c.baseDir, c.numServers, 1, "127.0.0.1");
                 for (int id = 2; id <= c.numServers; id++) {
                     String remote = c.servers.get(id - 2);
                     String cmd = "curl -sS -X POST http://localhost:8080/guardian/merge-local"
@@ -84,9 +84,11 @@ public class GuardianMixnetController {
                 //MixnetCommon.setupLocal(c.baseDir, c.sessionId, c.electionName, c.numServers, c.thres, 1);
             }
 
+            // LIMPAR ARQUIVOS
+
             for (int i = 1; i <= c.numServers; i++){
                 // aguarda arquivos de protocol info
-                File pi = new File("files/protInfo" + String.format("%02d", i) + ".xml");
+                File pi = new File("flask_backend/protinfo/protInfo" + String.format("%02d", i) + ".xml");
                 boolean ok = MixnetCommon.waitForFile(pi, 10 * 60 * 1000L); // timeout 10min
                 if (!ok) {
                     throw new RuntimeException("Timeout aguardando setup.");
@@ -126,10 +128,11 @@ public class GuardianMixnetController {
     @PostMapping("/merge-local")
     public Map<String, String> mergeLocal(
             @RequestParam int serverId,
-            @RequestParam int numServers) {
+            @RequestParam int numServers,
+            @RequestParam String centralIp) {
         GuardianConfig c = cfg();
         c.numServers = numServers; // keep in sync
-        return MixnetCommon.mergeLocal(c.baseDir, numServers, serverId);
+        return MixnetCommon.mergeLocal(c.baseDir, numServers, serverId, centralIp);
     }
 
     /* =====================
@@ -271,6 +274,21 @@ public class GuardianMixnetController {
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=publicKey.native")
                     .contentLength(nativePk.length())
                     .body(new FileSystemResource(nativePk));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/prot-info")
+    public ResponseEntity<FileSystemResource> getProtInfo() {
+        try {
+            File protInfo = new File("files/protInfo.xml");
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=protInfo.xml")
+                    .contentLength(protInfo.length())
+                    .body(new FileSystemResource(protInfo));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.notFound().build();

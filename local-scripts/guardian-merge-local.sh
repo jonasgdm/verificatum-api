@@ -8,9 +8,9 @@ num_servers="3"
 read -e -i "$num_servers" -p "Insira o número total de nós guardiões: " input
 num_servers="${input:-$num_servers}"
 
-# curl endpoint flask para pegar /files/protInfo.xml
-
-# cp protInfo.xml ./../files/protInfo.xml
+central_ip="127.0.0.1"
+read -e -i "$central_ip" -p "Insira o ip da máquina central (front end e servidor flask): " input
+central_ip="${input:-$central_ip}"
 
 curl -sS -X POST http://localhost:8080/guardian/merge-local \
-    -d "serverId=$mix_server&numServers=$num_servers"
+    -d "serverId=$mix_server&numServers=$num_servers&centralIp=$central_ip"

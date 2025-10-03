@@ -6,16 +6,18 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 import org.apache.http.HttpEntity;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-
-import java.io.File;
 
 public class MixnetCommon {
 
@@ -113,7 +115,7 @@ public class MixnetCommon {
        ===================== */
     public static Map<String, String> mergeCentral(int numServers) {
         try {
-            File dir = new File("files");
+            File dir = new File("flask_backend", "protinfo");
             List<String> args = new ArrayList<>();
             args.add("vmni"); args.add("-merge");
             for (int k = 1; k <= numServers; k++) {
@@ -130,15 +132,45 @@ public class MixnetCommon {
     /* =====================
        Merge (local)
        ===================== */
-    public static Map<String, String> mergeLocal(String baseDir, int numServers, int serverId) {
+    public static Map<String, String> mergeLocal(String baseDir, int numServers, int serverId, String centralIp) {
         try {
             File dir = new File(baseDir + "/0" + serverId);
+            dir.mkdir();
             // List<String> args = new ArrayList<>();
             // args.add("vmni"); args.add("-merge");
             // for (int k = 1; k <= numServers; k++) {
             //     args.add("protInfo" + String.format("%02d", k) + ".xml");
             // }
             // run(dir, args.toArray(new String[0]));
+
+            String url = "http://" + centralIp + ":5000" + "/api/protinfo";
+
+            RequestConfig cfg = RequestConfig.custom()
+                    .setConnectTimeout(5000)
+                    .setSocketTimeout(30000)
+                    .build();
+
+            try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(cfg).build()) {
+                HttpGet get = new HttpGet(url);
+
+                try (CloseableHttpResponse resp = client.execute(get)) {
+                    int code = resp.getStatusLine().getStatusCode();
+                    if (code < 200 || code >= 300) {
+                        throw new RuntimeException("GET falhou: " + code + " em " + url);
+                    }
+
+                    HttpEntity entity = resp.getEntity();
+                    if (entity == null) {
+                        throw new RuntimeException("Sem corpo na resposta: " + url);
+                    }
+
+                    File fileDest = new File(dir, "protInfo.xml");
+
+                    try (InputStream in = entity.getContent()) {
+                        Files.copy(in, fileDest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+                }
+            }
 
             File piOrig = new File("files/protInfo.xml");
             File piDest = new File(dir, "protInfo.xml");
@@ -158,8 +190,8 @@ public class MixnetCommon {
         try {
             VerificatumCleaner.freeGuardianServer(serverId);
             String serverDir = baseDir + "/" + String.format("%02d", serverId);
-            File dir = new File(serverDir);
-            run(dir, "vmn", "-keygen", "publicKey");
+            // File dir = new File(serverDir);
+            // run(dir, "vmn", "-keygen", "publicKey");
 
             NativeConverters.ensureGuardianPublicKeyNative(serverDir);
             
@@ -196,6 +228,25 @@ public class MixnetCommon {
        Auxiliares (limpeza, portas)
        ===================== */
     public static void cleanAndPrepareBase(String basePath, int numServers) throws IOException {
+
+        String url = "http://127.0.0.1:5000" + "/api/protinfo";
+
+        RequestConfig cfg = RequestConfig.custom()
+                .setConnectTimeout(5000)
+                .setSocketTimeout(30000)
+                .build();
+
+        try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(cfg).build()) {
+            HttpDelete del = new HttpDelete(url);
+
+            try (CloseableHttpResponse resp = client.execute(del)) {
+                int code = resp.getStatusLine().getStatusCode();
+                if (code < 200 || code >= 300) {
+                    throw new RuntimeException("Delete falhou: " + code + " em " + url);
+                }
+            }
+        }
+
         File baseDir = new File(basePath);
         if (baseDir.exists()) {
             for (File child : baseDir.listFiles()) {
