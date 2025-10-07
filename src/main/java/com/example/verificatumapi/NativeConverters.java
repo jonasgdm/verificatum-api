@@ -47,8 +47,8 @@ public class NativeConverters {
     }
 
     /** Returns the shuffler vmn.log (no conversion). */
-    public static File shufflerLogFile(String shufflerBaseDir) throws IOException {
-        File log = new File(shufflerBaseDir + "/01/vmn.log");
+    public static File shufflerLogFile(String shufflerBaseDir, int serverId) throws IOException {
+        File log = new File(shufflerBaseDir + "/" + String.format("%02d", serverId) + "/vmn.log");
         if (!log.exists()) {
             throw new IOException("Log not found: " + log.getAbsolutePath());
         }
