@@ -311,11 +311,12 @@ public class ShufflerMixnetController {
         }
     }
 
-    @GetMapping("/log")
-    public ResponseEntity<FileSystemResource> getShufflerLog() {
+    @PostMapping("/log")
+    public ResponseEntity<FileSystemResource> getShufflerLog(
+        @RequestParam int serverId) {
         try {
             String baseDir = System.getProperty("user.dir") + "/shuffler-demo";
-            File log = NativeConverters.shufflerLogFile(baseDir);
+            File log = NativeConverters.shufflerLogFile(baseDir, serverId);
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=vmn.log")
                     .contentLength(log.length())
