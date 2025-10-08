@@ -120,8 +120,9 @@ public class ShufflerMixnetController {
             @RequestParam(defaultValue = "ShuffleSession") String sessionId,
             @RequestParam(defaultValue = "ShufflerNet") String electionName) {
         try {
-            MixnetCommon.cleanAndPrepareBase(BASE_DIR, NUM_SERVERS);
-            File serverDir = new File(BASE_DIR + "/0" + serverId);
+            String serverPath = BASE_DIR + "/0" + serverId;
+            MixnetCommon.cleanServerFolder(serverPath, NUM_SERVERS);
+            File serverDir = new File(serverPath);
             MixnetCommon.run(serverDir, "vmni", "-prot",
                     "-sid", sessionId,
                     "-name", electionName,
@@ -249,7 +250,7 @@ public class ShufflerMixnetController {
                 // Copy shuffled output to guardian nodes
                 File shuffledFile = new File(BASE_DIR + "/01/shuffled");
                 for (int i = 1; i <= NUM_SERVERS; i++) {
-                    File dest = new File("verificatum-guardian/0" + i + "/shuffled-ciphertexts");
+                    File dest = new File("verificatum-guardian/0" + i + "/shuffled");
                     Files.copy(shuffledFile.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 }
                 MixnetCommon.killAllHintPorts(4040, 4060);

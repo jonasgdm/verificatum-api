@@ -120,7 +120,7 @@ public class MixnetCommon {
             File dir = new File(baseDir + "/0" + serverId);
             run(dir, "vmn", "-decrypt",
                 "privInfo.xml", "protInfo.xml",
-                "shuffled-ciphertexts", "plaintexts");
+                "shuffled", "plaintexts");
             return Map.of("status", "Decrypt local complete (server " + serverId + ")");
         } catch (Exception e) {
             e.printStackTrace();
@@ -143,6 +143,17 @@ public class MixnetCommon {
         for (int i = 1; i <= numServers; i++) {
             File dir = new File(basePath + "/0" + i);
             dir.mkdirs();
+        }
+    }
+
+    public static void cleanServerFolder(String serverPath, int numServers) throws IOException {
+        File serverDir = new File(serverPath);
+        if (serverDir.exists()) {
+            for (File child : serverDir.listFiles()) {
+                deleteRecursive(child);
+            }
+        } else {
+            serverDir.mkdirs();
         }
     }
 
@@ -213,7 +224,7 @@ public class MixnetCommon {
         if (log.exists()) log.delete();
 
         // nohup + background; saída vai para vmn.log
-        String cmd = "nohup vmn -decrypt shuffled-ciphertexts plaintexts >> vmn.log 2>&1 < /dev/null &";
+        String cmd = "nohup vmn -decrypt shuffled plaintexts >> vmn.log 2>&1 < /dev/null &";
         new ProcessBuilder("bash", "-lc", cmd)
                 .directory(dir)
                 .redirectErrorStream(true)
