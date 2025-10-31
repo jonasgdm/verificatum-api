@@ -26,6 +26,7 @@ def show(_=None):
         [
             "1. Simular Votação",
             "2. Mixagem e Decifração",
+            "3. Benchmarking",
             "0. Sair",
         ],
     )
@@ -34,6 +35,8 @@ def show(_=None):
         return "sim.descrp", None
     elif escolha.startswith("2"):
         return "mix.shuffle_setup", None
+    elif escolha.startswith("3"):
+        return "benchmark", None
     elif escolha.startswith("0"):
         console.print("[red]Encerrando...[/red]")
         return None, None
