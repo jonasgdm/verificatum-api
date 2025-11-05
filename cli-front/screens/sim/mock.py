@@ -7,6 +7,7 @@ from services.verificatum_api import get_publickey
 from utils.electionConfig_parser import load_election_config
 from app.mock_election import MockElection
 from infra.encryptors.node_daemon import NodeDaemonEncryptor
+from infra.encryptors.parallel_encryptor import ParallelEncryptPool
 
 from ui.panel import shell
 from ui.prompt import input_text, select
@@ -138,7 +139,9 @@ def run_mock(config):
     key_bytes = bytes.fromhex(hex_str)
     key = json.dumps(list(key_bytes))
 
-    encryptor = NodeDaemonEncryptor(key)
+    # encryptor = NodeDaemonEncryptor(key)
+    encryptor = ParallelEncryptPool(key, script="encryptor/daemon_encrypt.js", pool_size=3, max_workers=4)
+
     app = MockElection(key, config, encryptor)
     app.simulate()
 
