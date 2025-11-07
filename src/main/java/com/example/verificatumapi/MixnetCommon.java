@@ -1,6 +1,7 @@
 package com.example.verificatumapi;
 
 import java.io.*;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -27,21 +28,57 @@ public class MixnetCommon {
         }
     }
 
-    public static String getLocalAddress() throws SocketException, UnknownHostException{
-        Iterator<NetworkInterface> nis  = NetworkInterface.getNetworkInterfaces().asIterator();
-        NetworkInterface ni;
-        String local_address = InetAddress.getLocalHost().getHostAddress();
-        while (nis.hasNext()) {
-            ni = nis.next();
-            Iterator<InetAddress> addresses = ni.getInetAddresses().asIterator();
-            while (addresses.hasNext()) {
-                String current_address = addresses.next().getHostAddress();
-                System.out.println(current_address);
-                local_address = current_address.contains("192.168") ? current_address : local_address;
+    public static String getLocalAddress() throws SocketException {
+        try {
+            // Try to find the best (active, site-local) address
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface ni = interfaces.nextElement();
+                // Skip loopback, virtual, down, or point-to-point interfaces
+                if (ni.isLoopback() || !ni.isUp() || ni.isVirtual() || ni.isPointToPoint()) {
+                    continue;
+                }
+
+                Enumeration<InetAddress> addresses = ni.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress addr = addresses.nextElement();
+                    // Skip loopback and link-local
+                    if (addr.isLoopbackAddress() || addr.isLinkLocalAddress()) {
+                        continue;
+                    }
+                    // Prefer site-local (RFC 1918 private IPs)
+                    if (addr instanceof Inet4Address && addr.isSiteLocalAddress()) {
+                        return addr.getHostAddress();
+                    }
+                }
             }
+
+            // Fallback: return first non-loopback IPv4 address
+            Enumeration<NetworkInterface> fallbackInterfaces = NetworkInterface.getNetworkInterfaces();
+            while (fallbackInterfaces.hasMoreElements()) {
+                NetworkInterface ni = fallbackInterfaces.nextElement();
+                if (ni.isLoopback() || !ni.isUp()) continue;
+
+                Enumeration<InetAddress> addresses = ni.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress addr = addresses.nextElement();
+                    if (addr instanceof Inet4Address && !addr.isLoopbackAddress()) {
+                        return addr.getHostAddress();
+                    }
+                }
+            }
+
+            // Last resort: use getLocalHost (but warn it's unreliable)
+            InetAddress localHost = InetAddress.getLocalHost();
+            if (localHost instanceof Inet4Address) {
+                return localHost.getHostAddress();
+            }
+
+        } catch (UnknownHostException e) {
+            // Ignore
         }
 
-        return local_address;
+        return "127.0.0.1"; // Ultimate fallback
     }
 
     /* =====================
