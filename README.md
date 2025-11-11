@@ -1,110 +1,193 @@
-# 🗳️ Verificatum Java API
+# API Verificatum – MixNet + Guardian (TCC Criptografia)
 
-This project is a Java-based RESTful API built with Spring Boot to interact with the [Verificatum Mix-Net](https://www.verificatum.org/) using internal library calls rather than shelling out to CLI commands. It’s intended to power e-voting systems with mobility, threshold mix-nets, and future-ready support for asynchronous execution across multiple mix-servers.
+> **Sistema de MixNet com 3 nós (Shuffler) + Descriptografia Distribuída (Guardian)**  
+> Baseado em **Verificatum VMN**, com API REST em Spring Boot.  
 
-## 🚀 Features
+---
 
-- Full Java integration with Verificatum’s internal library (no CLI required)
-- Endpoint for protocol stub file generation (`-prot`)
-- Spring Boot API, ready to integrate with frontends or orchestrators
+## Visão Geral
 
-## 📦 Requirements
+- **Shuffler**: Embaralha ciphertexts (ElGamal) usando MixNet com 3 servidores.
+- **Guardian**: Gera chaves distribuídas e descriptografa o resultado final.
 
-| Tool       | Version |
-|------------|---------|
-| Java       | 17      |
-| Maven      | 3.x     |
-| Git        | latest  |
-| Curl       | optional for API testing |
-| Linux      | required for native `.so` dependencies |
+---
 
+## Endpoints da API
 
-## ⚙️ Clone, Build & Setup
+### Base URL: `http://localhost:8080`
 
+---
+
+## 1. SHUFFLER (Embaralhamento)
+
+### `POST /shuffler/setup` – Configurar Shuffler
 ```bash
-git clone https://github.com/jonasgdm/verificatum-api.git
-cd verificatum-api
+curl -X POST "http://localhost:8080/shuffler/setup?publicKeyUrl="
 ```
 
-### ✅ One-Time Native Library Setup (REQUIRED)
+| Parâmetro | Tipo | Descrição |
+|---------|------|----------|
+| `auto` | `boolean` | `true` = setup local automático (3 nós no mesmo PC) |
+| `publicKeyUrl` | `string` | URL do enpoint no Guardian que disponibiliza a `publicKeyNative` (formato nativo) |
 
-> Verificatum depends on a native library (libvecj-2.2.0.so) that must be accessible at runtime. Without this, the API will crash with java.lang.UnsatisfiedLinkError.
+**Resposta**:
+```json
+{ "status": "Shuffler setup complete" }
+```
 
-Run this inside the project folder:
+---
 
+### `POST /shuffler/receive-ciphertexts` – Receber Ciphertexts
 ```bash
-export LD_LIBRARY_PATH=$(pwd)/lib:$LD_LIBRARY_PATH
+curl -X POST http://localhost:8080/shuffler/receive-ciphertexts \
+  -F "file=@ciphertexts"
 ```
 
-## 🛠️ Build & Run
+> Arquivo binário no formato **nativo** (gerado pelo frontend ou `vmnc`).
 
+**Resposta**:
+```json
+{ "status": "Ciphertexts received and copied" }
+```
+
+---
+
+### `POST /shuffler/shuffle` – Executar Shuffle
 ```bash
-mvn clean install
-mvn spring-boot:run
-```
-The API will be available at:
-
-`http://localhost:8080`
-
-## 📡 API Endpoints
-### ➕ Generate Stub File
-
-**GET** `/verificatum/generate-stub`
-
-Generates a protocol stub (stub.xml) using internal Verificatum library functions (equivalent to vmni -prot).
-
-📝 Output will appear in the root of the project (verificatum-api/stub.xml).
-
-## 🔜 Next Steps
-
-- Add endpoints for -party and -merge phases of vmni
-
-- Allow parameterized requests for all fields
-
-- Automate setup for multiple mix-servers (3 or more)
-
-- Clean up and modularize configurations for LAN or distributed deployments
-
-- Start writing integration tests and performance benchmarking
-
-## Flask Backend
-
-This Flask backend serves as a middleware layer between the user-facing frontend and the Verificatum Java API. It exposes a simplified API that orchestrates secure voting steps such as key generation, mixing, and decryption by communicating with external mixnet services. This architecture allows the frontend to remain lightweight and abstracted from cryptographic complexity.
-
-### How to Run
-
-1. Change to flask_backend directory
-
-```
-cd flask_backend
+curl -X POST http://localhost:8080/shuffler/shuffle
 ```
 
-2. Create a Virtual Environment
+> Só funciona após `setup` + `receive-ciphertexts`.
 
-```
-python -m venv .venv
-```
-3. Active Virtual Environment
-```
-source .venv/bin/activate
+**Resposta**:
+```json
+{ "status": "Shuffle complete" }
 ```
 
-4. Install Independences
+---
 
-```
-pip install flask
-```
-
-```
-pip install flask-cors
+### `GET /shuffler/shuffled-ciphertexts` – Baixar Resultado
+```bash
+curl -OJ http://localhost:8080/shuffler/shuffled-ciphertexts
 ```
 
-5. Run the Flask Server
+> Salva como `shuffled.native`
+
+---
+
+### `GET /shuffler/log?serverId=1` – Baixar Log do Nó
+```bash
+curl -OJ "http://localhost:8080/shuffler/log?serverId=1"
+```
+
+> Útil para debug: `Rejected proof`, `NullPointer`, etc.
+
+---
+
+## 2. GUARDIAN (Chave + Descriptografia)
+
+### `POST /guardian/setup` – Configurar Guardian
+```bash
+curl -X POST "http://localhost:8080/guardian/setup?numServers=3&thres=2"
+```
+
+> Só o Guardian 1 (orquestrador) chama esse endpoint.
+
+---
+
+### `POST /guardian/keygen` – Gerar Chave Distribuída
+```bash
+curl -X POST http://localhost:8080/guardian/keygen
+```
+
+> Só o Guardian 1 (orquestrador) chama esse endpoint. Aguarda até 10 min para os demais nós iniciarem também o keygen localmente.
+
+---
+
+### `POST /guardian/decrypt` – Descriptografar
+```bash
+curl -X POST http://localhost:8080/guardian/decrypt -o plaintexts.native
+```
+
+> Requer `shuffled` copiado para `/guardian/0X/shuffled` em **todos os nós**.
+
+**Retorno**: `plaintexts.native`
+
+---
+
+### `GET /guardian/public-key` – Baixar Chave Pública
+```bash
+curl -OJ http://localhost:8080/guardian/public-key
+```
+
+> Salva como `publicKey.native`
+
+---
+
+## Scripts para nós locais
+
+Use os scripts em `local-scripts/`:
+
+| Script | Onde Rodar | Descrição |
+|-------|-----------|----------|
+| `guardian-setup-local.sh` | Nós 2 e 3 | Gera `protInfo0X.xml` |
+| `guardian-merge-local.sh` | Todos os nós | Junta `protInfo0*.xml` |
+| `guardian-keygen-local.sh` | Nós 2 e 3 | Inicia keygen |
+| `guardian-decrypt-local.sh` | Nós 2 e 3 | Faz decifração |
+| `shuffler-setup-local.sh` | Nós 2 e 3 | Configura shuffler |
+| `shuffler-merge-local.sh` | Todos | Junta `protInfo` |
+| `shuffler-setpk-local.sh` | Todos | Define chave pública |
+| `shuffler-shuffle-local.sh` | Nós 2 e 3 | Embaralha localmente |
+
+> **Sempre copie arquivos entre nós via pendrive ou SCP**.
+
+---
+
+## Estrutura de Pastas
 
 ```
-python app.py
+shuffler-demo/
+├── 01/, 02/, 03/
+│   ├── protInfo01.xml
+│   ├── ciphertexts
+│   ├── shuffled
+│   └── vmn.log
+
+verificatum-guardian/
+├── 01/, 02/, 03/
+│   ├── protInfo01.xml
+│   ├── publicKey
+│   ├── shuffled
+│   ├── plaintexts
+│   └── vmn.log
 ```
 
+## Execução Completa (Passo a Passo)
 
-Server will start at:
-`http://localhost:5000`
+1. Instalar API
+	1. git clone https://github.com/jonasgdm/verificatum-api.git
+	2. cd verificatum-api
+	3. mvn clean install
+	4. mvn spring-boot:run
+2. Rodar API
+	1. cd local-scripts/
+	2. setup pelo front
+	3. ./local-scripts/guardian-setup-local.sh (servers 2 e 3)
+	4. transferir arquivos protInfo0x para pastas de todos servers (em todos os PCs)
+	5. ./local-scripts/guardian-merge-local.sh (servers 1, 2 e 3)
+	6. keygen pelo front
+	7. ./local-scripts/guardian-keygen-local.sh (servers 2 e 3)
+	8. shuffle setup pelo front
+	9. ./local-scripts/shuffle-setup-local.sh (servers 2 e 3)
+	10. transferir arquivos protInfo0x %% + publicKeyNative %% para todos servers
+	11. ./local-scripts/shuffler-merge-local.sh
+	12. ./local-scripts/shuffler-setpk-local.sh
+	13. shuffle pelo front (falha e fica suspenso, mas entrega ciphertexts no 01)
+	14. transferir ciphertexts do 01 para todos servers
+	15. ./local-scripts/shuffler-shuffle-local.sh (servers 2 e 3)
+	16. enter no front suspenso = sucesso
+	17. transferir /shuffler-demo/0x/shuffled para /verificatum-guardian/0x/
+	18. decrypt pelo front
+	19. ./local-scripts/guardian-decrypt-local.sh (servers 2 e 3)
+
+---
