@@ -19,7 +19,7 @@ def get_publickey():
 
 
 def get_log():
-    return _get("/shuffler/log")
+    return _get("/shuffler/log?serverId=1")
 
 
 def decrypt():
