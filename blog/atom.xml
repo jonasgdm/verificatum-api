@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?><?xml-stylesheet type="text/xsl" href="atom.xsl"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://luisdellano.github.io/verificatum-api/blog</id>
-    <title>My Site Blog</title>
+    <title>Implementação e Avaliação de uma Solução Criptográfica para Mobilidade Segura em Eleições Brasileiras Blog</title>
     <updated>2021-08-26T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://luisdellano.github.io/verificatum-api/blog"/>
-    <subtitle>My Site Blog</subtitle>
+    <subtitle>Implementação e Avaliação de uma Solução Criptográfica para Mobilidade Segura em Eleições Brasileiras Blog</subtitle>
     <icon>https://luisdellano.github.io/verificatum-api/img/favicon.ico</icon>
     <entry>
         <title type="html"><![CDATA[Welcome]]></title>
