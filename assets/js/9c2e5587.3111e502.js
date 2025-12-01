@@ -1,1 +1,0 @@
-"use strict";(globalThis.webpackChunksite_tcc=globalThis.webpackChunksite_tcc||[]).push([[6349],{6779:t=>{t.exports=JSON.parse('{"metadata":{"permalink":"/verificatum-api/blog","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);

@@ -1,1 +1,0 @@
-"use strict";(globalThis.webpackChunksite_tcc=globalThis.webpackChunksite_tcc||[]).push([[1903],{1912:t=>{t.exports=JSON.parse('{"blogBasePath":"/verificatum-api/blog","blogTitle":"Blog","authorsListPath":"/verificatum-api/blog/authors"}')}}]);
